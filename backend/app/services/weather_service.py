@@ -14,13 +14,13 @@ UNITS = "metric"
 
 # Initialize cache (10-minute expiry)
 requests_cache.install_cache(
-    'weather_cache', 
+    'app/data/weather_cache.sqlite', 
     backend='sqlite', 
     expire_after=timedelta(minutes=10)
 )
 
 
-def get_weather_data(lat, lon, exclude_list=None):
+def get_weather_data(lat, lon,):
     """
     Fetches weather data. 
     exclude_list: list of strings (e.g., ["minutely", "hourly"])
@@ -28,18 +28,14 @@ def get_weather_data(lat, lon, exclude_list=None):
     if not API_KEY:
         return {"error": "API Key missing in .env"}
 
-    base_url = "https://api.openweathermap.org/data/3.0/onecall"
+    base_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}"
     
     params = {
         "lat": lat,
         "lon": lon,
         "appid": API_KEY,
-        "units": UNITS
     }
     
-    # Format the list into a comma-separated string for the API
-    if exclude_list:
-        params["exclude"] = ",".join(exclude_list)
 
     try:
         response = requests.get(base_url, params=params)
@@ -59,7 +55,6 @@ if __name__ == "__main__":
     to_exclude = ["minutely"] 
     
     data = get_weather_data(LAT, LON, exclude_list=to_exclude)
-    
     if "error" not in data:
         # If 'current' was NOT excluded, we can print it
         if 'current' in data:

@@ -35,16 +35,6 @@ from app.services.weather_service import get_weather_data as fetch_weather_data
 def get_weather_info(option: str = "current") -> str:
     """
     Use this tool to get weather information for the farmer's location.
-
-    The model may choose the appropriate type of weather data:
-    - 'current' → current weather conditions (default)
-    - 'minutely' → short-term rain forecast
-    - 'hourly' → next 48 hours forecast
-    - 'daily' → next 7–8 days forecast
-    - 'alerts' → weather warnings
-
-    If unsure, always use 'current'.
-
     Do NOT ask the user for weather parameters. Location is handled internally.
     """
 
@@ -52,24 +42,9 @@ def get_weather_info(option: str = "current") -> str:
     lat = 28.6139
     lon = 77.2090
 
-    # ✅ Safety validation
-    valid_options = ["current", "minutely", "hourly", "daily", "alerts"]
-    if option not in valid_options:
-        option = "current"
 
     try:
-        data = fetch_weather_data(lat, lon, [option])
+        data = fetch_weather_data(lat, lon)
         return f"Weather ({option}): {data}"
     except Exception as e:
         return f"Unable to fetch weather data right now."
-    
-    
-
-"""
-Value:What it removes from the response
-current: "Current weather conditions (temp, humidity, etc.)."
-minutely: Minute-by-minute precipitation forecast for the next 1 hour.
-hourly: Hourly forecast for the next 48 hours.
-daily: Daily forecast for the next 8 days.
-alerts: Government-issued weather warnings/alerts.
-"""
