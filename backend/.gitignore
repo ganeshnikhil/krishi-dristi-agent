@@ -1,0 +1,71 @@
+# ----------------------
+# PyCharm / JetBrains
+# ----------------------
+.idea/
+*.iml
+
+# ----------------------
+# Python
+# ----------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+
+# ----------------------
+# Flask
+# ----------------------
+instance/
+.webassets-cache
+
+# ----------------------
+# Environment variables (IMPORTANT)
+# ----------------------
+.env
+.env.*
+*.env
+
+# ----------------------
+# Logs
+# ----------------------
+*.log
+logs/
+
+# ----------------------
+# Database
+# ----------------------
+*.sqlite3
+*.db
+
+# ----------------------
+# OS files
+# ----------------------
+.DS_Store
+Thumbs.db
+
+# ----------------------
+# Node (if frontend tools used)
+# ----------------------
+node_modules/
+dist/
+build/
+
+# ----------------------
+# Testing / Coverage
+# ----------------------
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ----------------------
+# Misc
+# ----------------------
+*.bak
+*.tmp
+*.cache
