@@ -12,7 +12,7 @@ from app.tools.rain_fall import get_rainfall_prediction
 from app.tools.weather_tool import get_weather_info
 from app.tools.soil_tool import get_soil_info
 from app.tools.general_info_tool import search_external_knowledge
-
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 
 load_dotenv()
@@ -47,6 +47,10 @@ def get_sarvam_llm(model_name: str = "sarvam-30b") -> ChatOpenAI:
         model=model_name,
         temperature=0.0
     )
+
+def get_gemini_llm(moddel_name: str = "gemini-1.5-pro"):
+    return ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0.0)
+
 
 
 ## for offline communication

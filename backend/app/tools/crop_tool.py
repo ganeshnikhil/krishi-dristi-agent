@@ -11,14 +11,15 @@ def get_crop_prediction() -> str:
     """
     current_temp = 28.4   # Celsius
     current_rain = 120.5  # mm
-    soil_type = "Loamy"
-    weights_path = "models/crop_yield_v1.weights"
-
+    crop_name = "Rice"
+    current_pesticide = 1.5
+    weights_path = "app/models/india_crop_yield_model.pkl"
     try:
         prediction = predict_yield_simple(
             weights_path,
-            soil_type,
+            crop_name,
             current_rain,
+            current_pesticide,
             current_temp
         )
 

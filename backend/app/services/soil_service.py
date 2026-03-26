@@ -3,16 +3,21 @@
     
 import os
 import requests
-import requests_cache
+from requests_cache import CachedSession
 from datetime import timedelta
 
-# ✅ Initialize cache in app/data folder
-cache_path = os.path.join("app", "data", "weather_cache")  # SQLite file will be weather_cache.sqlite
-requests_cache.install_cache(
-    cache_name=cache_path,
+# 1. Initialize a specific Soil Session
+# This replaces the global install_cache()
+soil_session = CachedSession(
+    cache_name=os.path.join("app", "data", "soil_cache"),
     backend='sqlite',
-    expire_after=timedelta(minutes=10)  # cache expires after 10 minutes
+    expire_after=timedelta(minutes=10), # Case 1: 10-minute speed booster
+    stale_if_error=True,                # Case 2: API-down safety net
+    allowable_codes=[200],              # Only cache successful soil data
+    ignored_parameters=['polyid','appid']
 )
+
+
 
 def fetch_soil_data() -> dict:
     """
@@ -29,6 +34,20 @@ def fetch_soil_data() -> dict:
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
+    # --- Debugging Logic ---
+        if response.from_cache:
+            if getattr(response, 'is_expired', False):
+                print("⚠️ API DOWN: Serving stale soil data from backup.")
+            else:
+                print("🚀 CACHE HIT: Serving fresh data (under 10 mins old).")
+        else:
+            print("🌐 API CALL: Fetched new soil data from AgroMonitoring.")
+            
         return response.json()
+
     except requests.RequestException as e:
-        raise RuntimeError(f"Unable to fetch soil data: {str(e)}")
+        # This only triggers if the API is down AND there is NO cache at all
+        raise RuntimeError(f"Critical Error: Soil data unreachable: {str(e)}")
+
+if __name__ == "__main__":
+    print(fetch_soil_data())

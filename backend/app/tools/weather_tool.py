@@ -28,11 +28,11 @@
 #     return get_weather_data(lat, lon, [option])
 
 from langchain.tools import tool
-from app.services.weather_service import get_weather_data as fetch_weather_data
+from app.services.weather_service import get_weather_data 
 
 
 @tool
-def get_weather_info(option: str = "current") -> str:
+def get_weather_info() -> str:
     """
     Use this tool to get weather information for the farmer's location.
     Do NOT ask the user for weather parameters. Location is handled internally.
@@ -44,7 +44,9 @@ def get_weather_info(option: str = "current") -> str:
 
 
     try:
-        data = fetch_weather_data(lat, lon)
-        return f"Weather ({option}): {data}"
+        data = get_weather_data(lat, lon)
+        return data
     except Exception as e:
         return f"Unable to fetch weather data right now."
+
+print(get_weather_info())

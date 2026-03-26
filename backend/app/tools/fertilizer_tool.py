@@ -22,8 +22,8 @@ def get_fertilizer_prediction() -> str:
         "Potassium": 0,
         "Phosphorous": 21,
     }
-
-    weights_path = "models/fertilizer_model.pkl"
+    
+    weights_path = "app/models/fertilizer_bundle.pkl"
 
     prediction = predict_fertilizer(weights_path, sample_input)
     return f"Based on the collected data, the fertilizer recommended is: {prediction}"
