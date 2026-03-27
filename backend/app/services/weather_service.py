@@ -22,45 +22,42 @@ weather_session = CachedSession(
     ignored_parameters=['appid']
 )
 
-
-
-def get_weather_data(lat, lon,):
-    """
-    Fetches weather data. 
-    exclude_list: list of strings (e.g., ["minutely", "hourly"])
-    """
+def get_weather_data(lat, lon):
     if not API_KEY:
         return {"error": "API Key missing in .env"}
-
-    base_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}"
+    
+    # Keep the base URL clean
+    base_url = "https://api.openweathermap.org/data/2.5/weather"
     
     params = {
         "lat": lat,
         "lon": lon,
         "appid": API_KEY,
+        "units": UNITS
     }
-    
 
     try:
-        response = requests.get(base_url, params=params)
+        # ✅ USE THE SESSION, NOT THE REQUESTS MODULE
+        response = weather_session.get(base_url, params=params)
         response.raise_for_status()
-        # Case 1: Multiple requests in 10 mins
-        if response.from_cache and not getattr(response, 'is_expired', False):
-            print("🚀 Case 1 Triggered: Serving from cache (Under 10 mins old).")
-            
-        # Case 2: API is down (and data is > 10 mins old)
-        elif response.from_cache and getattr(response, 'is_expired', False):
-            print("⚠️ Case 2 Triggered: API is down! Serving 'stale' fallback data.")
-            
-        # Case 3: Fresh API call (Data was old AND API is working)
+
+        # Check if the response came from the cache
+        # Note: requests-cache adds 'from_cache' to the response object
+        is_from_cache = getattr(response, 'from_cache', False)
+        
+        if is_from_cache:
+            # Check if it was a 'stale' fallback (Case 2)
+            if getattr(response, 'is_expired', False):
+                print("⚠️ Case 2: API is down! Serving 'stale' fallback data.")
+            else:
+                print("🚀 Case 1: Serving from cache (Fresh).")
         else:
-            print("🌐 10 mins passed & API is healthy: Fetched fresh data.")
+            print("🌐 Case 3: 10 mins passed or cache empty. Fetched fresh data.")
 
         return response.json()
 
     except Exception as e:
         return {"error": f"Critical Failure (No cache and no API): {e}"}
-
 
 if __name__ == "__main__":
     # --- CHANGE EXCLUSIONS HERE ---

@@ -1,249 +1,114 @@
-# import os
-# from dotenv import load_dotenv
-# from langchain.messages import HumanMessage
-# from langchain.agents import create_agent
-# from langgraph.checkpoint.sqlite import SqliteSaver
-# from langchain_ollama import ChatOllama
-
-# from app.tools.crop_tool import get_crop_prediction
-# from app.tools.fertilizer_tool import get_fertilizer_prediction
-# from app.tools.rain_fall import get_rainfall
-# from app.tools.weather_tool import get_weather_data
-
-# load_dotenv()
-
-# TOOLS = [
-#     get_crop_prediction,
-#     get_fertilizer_prediction,
-#     get_rainfall,
-#     get_weather_data,
-# ]
-
-
-# def get_offline_llm(model_name: str = "gemma3:270m"):
-#     return ChatOllama(
-#         model=model_name,
-#         temperature=0.3,
-#     )
-
-
-# def get_system_prompt(expertise_level: str = "beginner") -> str:
-#     base = (
-#         "You are an expert Indian Agriculture Advisor. "
-#         "You must use the available tools whenever they help answer the user query. "
-#         "Do not guess when a tool can provide the answer. "
-#         "Give practical, short, farmer-friendly answers."
-#     )
-#     if expertise_level == "beginner":
-#         return f"{base} Explain in simple language without asking for extra input."
-#     return base
-
-
-# def create_farmer_agent(llm, checkpointer: SqliteSaver):
-#     return create_agent(
-#         model=llm,
-#         tools=TOOLS,
-#         system_prompt=get_system_prompt("beginner"),
-#         checkpointer=checkpointer,
-#     )
-
-
-# if __name__ == "__main__":
-#     DB_PATH = "farmer_data.db"
-
-#     with SqliteSaver.from_conn_string(DB_PATH) as checkpointer:
-#         llm = get_offline_llm("qwen2.5:3b")
-#         agent = create_farmer_agent(llm, checkpointer)
-
-#         print("🌾 Offline Farmer AI Ready! (Tool calling enabled)")
-#         print(f"📦 Database: {DB_PATH}\n")
-
-#         while True:
-#             current_user = input("Enter User ID (e.g., user1): ").strip()
-#             if not current_user:
-#                 print("User ID cannot be empty.")
-#                 continue
-
-#             user_query = input(f"[{current_user}] You: ").strip()
-#             if user_query.lower() in ["exit", "quit"]:
-#                 print("Goodbye! 🌱")
-#                 break
-
-#             try:
-#                 config = {"configurable": {"thread_id": current_user}}
-#                 response = agent.invoke(
-#                     {"messages": [HumanMessage(content=user_query)]},
-#                     config=config
-#                 )
-#                 last_message = response["messages"][-1]
-#                 print(f"Agent: {last_message.content}\n")
-
-#             except Exception as e:
-#                 print(f"❌ Error: {e}\n")
-
-
-
 import os
 from dotenv import load_dotenv
-from langchain.messages import HumanMessage
-from langchain.agents import create_agent
-from langgraph.checkpoint.sqlite import SqliteSaver
 from langchain_ollama import ChatOllama
-from langchain.tools import tool
+from langgraph.checkpoint.sqlite import SqliteSaver
+from langchain.agents import create_agent
+from langchain.messages import SystemMessage, HumanMessage
+
+# Your actual agriculture tools
+from app.tools.yield_tool import YieldPredictionInternalTool
+from app.tools.crop_tool import CropRecommendationInternalTool
+from app.tools.fertilizer_tool import FertilizerPredictionTool
+from app.tools.rain_fall import RainfallPredictionTool
+from app.tools.weather_tool import WeatherInfoTool
+from app.tools.soil_tool import SoilInfoTool
+from app.tools.general_info_tool import ExternalKnowledgeSearchTool
+from app.tools.farm_advice_tool import FarmPracticeRAGTool
+from app.tools.goverment_schema_tool import GovSchemeRAGTool
 
 load_dotenv()
 
 # -----------------------------
-# DUMMY TOOL DEFINITIONS
-# -----------------------------
-@tool
-def get_crop_prediction() -> str:
-    """
-    Dummy crop prediction tool.
-    Returns a fixed recommendation for testing.
-    """
-    return "Recommended crops for this region: Sugarcane, Cotton."
-
-@tool
-def get_fertilizer_prediction() -> str:
-    """
-    Dummy fertilizer prediction tool.
-    Returns a fixed fertilizer recommendation.
-    """
-    return "Suggested fertilizer: 50kg Nitrogen + 30kg Phosphorous per hectare."
-
-@tool
-def get_rainfall() -> str:
-    """
-    Dummy rainfall tool.
-    Returns a fixed rainfall value.
-    """
-    return "Average rainfall for this location: 120mm."
-
-@tool
-def get_weather_data() -> str:
-    """
-    Dummy weather tool.
-    Returns a fixed weather status.
-    """
-    return "Current weather: 28°C, high humidity."
-
-# -----------------------------
-# TOOL LIST
+# TOOLS CONFIGURATION
 # -----------------------------
 TOOLS = [
-    get_crop_prediction,
-    get_fertilizer_prediction,
-    get_rainfall,
-    get_weather_data,
+    YieldPredictionInternalTool(),
+    CropRecommendationInternalTool(),
+    FertilizerPredictionTool(),
+    RainfallPredictionTool(),
+    WeatherInfoTool(),
+    SoilInfoTool(),
+    ExternalKnowledgeSearchTool(),
+    FarmPracticeRAGTool(),
+    GovSchemeRAGTool()
 ]
 
 # -----------------------------
-# OFFLINE LLM SETUP
+# LFM 2.5 LLM SETUP
 # -----------------------------
-def get_offline_llm(model_name: str = "lfm2.5-thinking:latest"):
+def get_offline_llm():
     """
-    Returns a lightweight offline LLM for mobile testing.
+    Configured for Liquid AI LFM 2.5 Thinking.
+    Uses low temperature to ensure stable reasoning traces.
     """
     return ChatOllama(
-        model=model_name,
-        temperature=0.3,
+        model="lfm2.5-thinking:latest",
+        temperature=0.1,  # Recommended for reasoning models
+        top_p=0.1,
         streaming=True
     )
 
 # -----------------------------
-# SYSTEM PROMPT
+# SYSTEM PROMPT (Optimized for LFM Reasoning)
 # -----------------------------
-
-ZERO_SHOT_TOOL_EXAMPLES = """
-Example 1:
-Q: Which crop is best for my red soil?
-Tools to use: get_crop_prediction
-
-Example 2:
-Q: How much fertilizer should I use for maize?
-Tools to use: get_fertilizer_prediction
-
-Example 3:
-Q: What is the current rainfall?
-Tools to use: get_rainfall
-
-Example 4:
-Q: Will it rain tomorrow?
-Tools to use: get_weather_data
-
-Example 5:
-Q: I want to plant sugarcane and know fertilizer and weather info.
-Tools to use: get_crop_prediction, get_fertilizer_prediction, get_weather_data
-"""
-
-def get_system_prompt(expertise_level="beginner") -> str:
-    base = (
+def get_agent_system_prompt() -> str:
+    return (
         "You are an expert Indian Agriculture Advisor. "
-        "Use the available tools automatically when they help answer the user query. "
-        "Do not guess when a tool can provide the answer. "
-        "Give practical, short, farmer-friendly answers.\n\n"
-        "Follow these examples to decide which tool(s) to call:\n"
-        f"{ZERO_SHOT_TOOL_EXAMPLES}\n"
+        "You have a 'thinking' capability—use it to plan which tools to call.\n\n"
+        "RULES:\n"
+        "1. Always check tools first for weather, soil, or crop advice.\n"
+        "2. If the user asks about crops, use 'CropPredictionInternalTool'.\n"
+        "3. If the user asks about government aid, use 'GovSchemeRAGTool'.\n"
+        "4. Respond in the same language as the user (Hindi, Marathi, etc.).\n"
+        "5. Keep the final answer simple and helpful for a farmer."
     )
-    if expertise_level == "beginner":
-        return base + "Explain in simple language without asking for extra input."
-    return base
-
-# def get_system_prompt(expertise_level: str = "beginner") -> str:
-#     base = (
-#         "You are an expert Indian Agriculture Advisor. "
-#         "Use the available tools automatically when they help answer the user query. "
-#         "Do not guess when a tool can provide the answer. "
-#         "Give practical, short, farmer-friendly answers."
-#     )
-#     if expertise_level == "beginner":
-#         return f"{base} Explain in simple language without asking for extra input."
-#     return base
 
 # -----------------------------
 # AGENT CREATION
 # -----------------------------
 def create_farmer_agent(llm, checkpointer: SqliteSaver):
+    # LFM 2.5 is sensitive to prompt structure. 
+    # create_agent handles the ChatML formatting for Ollama.
     return create_agent(
         model=llm,
         tools=TOOLS,
-        system_prompt=get_system_prompt("beginner"),
+        system_prompt=get_agent_system_prompt(),
         checkpointer=checkpointer,
+        debug=True # Highly recommended to see the 'Thinking' process in console
     )
 
 # -----------------------------
 # MAIN EXECUTION
 # -----------------------------
 if __name__ == "__main__":
-    DB_PATH = "farmer_data_dummy.db"
+    DB_PATH = "farmer_data_lfm.db"
 
     with SqliteSaver.from_conn_string(DB_PATH) as checkpointer:
-        llm = get_offline_llm()  # Lightweight offline model
+        llm = get_offline_llm()
         agent = create_farmer_agent(llm, checkpointer)
 
-        print("🌾 Offline Dummy Farmer AI Ready! (Tool calling enabled)")
+        print("🧠 LFM 2.5 Thinking Agent Ready! (Local & Private)")
         print(f"📦 Database: {DB_PATH}\n")
 
         while True:
-            current_user = input("Enter User ID (e.g., user1): ").strip()
-            if not current_user:
-                print("User ID cannot be empty.")
-                continue
+            current_user = input("Enter User ID: ").strip()
+            if not current_user: continue
 
             user_query = input(f"[{current_user}] You: ").strip()
             if user_query.lower() in ["exit", "quit"]:
-                print("Goodbye! 🌱")
                 break
 
             try:
                 config = {"configurable": {"thread_id": current_user}}
+                
+                # The response will contain the thinking trace + final tool call/answer
                 response = agent.invoke(
                     {"messages": [HumanMessage(content=user_query)]},
                     config=config
                 )
-                last_message = response["messages"][-1]
-                print(f"Agent: {last_message.content}\n")
+                
+                last_msg = response["messages"][-1]
+                print(f"\nAgent: {last_msg.content}\n")
 
             except Exception as e:
                 print(f"❌ Error: {e}\n")

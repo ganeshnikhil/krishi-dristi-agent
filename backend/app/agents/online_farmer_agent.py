@@ -4,7 +4,8 @@ from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langchain_ollama import ChatOllama
-from app.tools.crop_tool import CropPredictionInternalTool
+from app.tools.yield_tool import YieldPredictionInternalTool
+from app.tools.crop_tool import CropRecommendationInternalTool
 from app.tools.fertilizer_tool import FertilizerPredictionTool
 from app.tools.rain_fall import RainfallPredictionTool
 from app.tools.weather_tool import WeatherInfoTool
@@ -18,22 +19,10 @@ from langchain.messages import SystemMessage, HumanMessage
 
 load_dotenv()
 
-# -----------------------------
-# TOOLS
-# -----------------------------
-# @tool
-# def get_crop_prediction() -> str:
-#     """Always use this tool when user asks about crops. Do NOT ask for inputs."""
-#     return "In Maharashtra with red soil, Sugarcane or Cotton is recommended."
-
-# @tool
-# def get_weather() -> str:
-#     """Automatically returns current weather for the farmer's region."""
-#     return "The weather in Maharashtra is 28°C with high humidity."
-
 
 TOOLS = [
-    CropPredictionInternalTool(),
+    YieldPredictionInternalTool(),
+    CropRecommendationInternalTool(),
     FertilizerPredictionTool(),
     RainfallPredictionTool(),
     WeatherInfoTool(),
@@ -79,19 +68,6 @@ def get_ollama_llm(model_name: str = "llama3"):
 # SYSTEM PROMPT
 # -----------------------------
 
-# def get_agent_system_prompt(expertise_level: str = "beginner") -> str:
-#     base = (
-#         "You are an expert Indian Agriculture Advisor. "
-#         "You MUST use the provided tools to answer questions. "
-#         "Do NOT answer from your own knowledge if a tool is available. "
-#         "Always return the tool output as the main answer. "
-#         "Do NOT ask follow-up questions. "
-#         "Keep the answer simple and farmer-friendly. "
-#         "Reply in the same language as the user."
-#     )
-#     return base
-
-
 def get_agent_system_prompt(expertise_level: str = "beginner") -> str:
     return (
         "You are an expert Indian Agriculture Advisor.\n\n"
@@ -135,30 +111,6 @@ def create_farmer_agent(llm: ChatOpenAI, checkpointer: SqliteSaver):
         checkpointer=checkpointer,
         debug=True
     )
-
-
-# def call_chat_only(llm, user_query: str, config: dict, checkpointer: SqliteSaver):
-#     """
-#     Handles simple conversation while manually syncing with the 
-#     same SQLite memory used by the Agent.
-#     """
-#     # Fetch existing history for this thread
-#     state = checkpointer.get(config)
-#     history = state.values.get("messages", []) if state else []
-    
-#     # Build message list: System + History + Current Query
-#     messages = [SystemMessage(content=get_chat_system_prompt())]
-#     messages.extend(history)
-#     messages.append(HumanMessage(content=user_query))
-    
-#     # Execute LLM call
-#     response = llm.invoke(messages)
-    
-#     # Update SQLite state manually to keep memory consistent
-#     new_history = history + [HumanMessage(content=user_query), response]
-#     checkpointer.put(config, {"messages": new_history})
-    
-#     return response.content
 
 
 def call_chat_only(llm, user_query: str, config: dict, checkpointer):

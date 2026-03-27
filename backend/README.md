@@ -11,7 +11,8 @@ Key features:
 * **Offline & online support:** Caching and offline AI models for areas with low connectivity.
 * **Multilingual support:** Supports multiple languages for farmer accessibility.
 * **Meta-search engine:** SearXNG integration for advanced information retrieval.
-
+* **Goverment scheme rag:** Included goverment scheme RAG.
+* **Farming practices rag:** Inluded best farming practices RAG
 ---
 
 ## Project Structure

@@ -1,10 +1,10 @@
-
-    
-    
 import os
 import requests
 from requests_cache import CachedSession
 from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # 1. Initialize a specific Soil Session
 # This replaces the global install_cache()
@@ -14,10 +14,7 @@ soil_session = CachedSession(
     expire_after=timedelta(minutes=10), # Case 1: 10-minute speed booster
     stale_if_error=True,                # Case 2: API-down safety net
     allowable_codes=[200],              # Only cache successful soil data
-    ignored_parameters=['polyid','appid']
 )
-
-
 
 def fetch_soil_data() -> dict:
     """
@@ -25,17 +22,28 @@ def fetch_soil_data() -> dict:
     """
     polyid = os.getenv("AGRO_POLYGON_ID")
     appid = os.getenv("AGRO_MONOTRONIG_API")
-
     if not polyid or not appid:
         raise ValueError("Polygon ID or API key not set in environment variables.")
 
-    url = f"http://api.agromonitoring.com/agro/1.0/soil?polyid={polyid}&appid={appid}"
+    # Clean URL without query strings
+    url = "http://api.agromonitoring.com/agro/1.0/soil"
+    
+
+    # Let the session handle the encoding of parameters
+    params = {
+        "polyid": polyid,
+        "appid": appid
+    }
 
     try:
-        response = requests.get(url, timeout=10)
+        # ✅ CHANGE: Use soil_session instead of requests
+        response = soil_session.get(url, params=params, timeout=10)
         response.raise_for_status()
-    # --- Debugging Logic ---
-        if response.from_cache:
+
+        # Now .from_cache will actually exist!
+        is_cached = getattr(response, 'from_cache', False)
+
+        if is_cached:
             if getattr(response, 'is_expired', False):
                 print("⚠️ API DOWN: Serving stale soil data from backup.")
             else:
@@ -45,9 +53,25 @@ def fetch_soil_data() -> dict:
             
         return response.json()
 
-    except requests.RequestException as e:
-        # This only triggers if the API is down AND there is NO cache at all
+    except Exception as e:
+        # This triggers if the API is down AND there is NO cache at all
         raise RuntimeError(f"Critical Error: Soil data unreachable: {str(e)}")
 
+
+# import requests
+
+# # Use your API Key
+# API_KEY = "43c4552bed6354941cde6768d5890f47"
+# url = f"http://api.agromonitoring.com/agro/1.0/polygons?appid={API_KEY}"
+
+# response = requests.get(url)
+# polygons = response.json()
+
+# print("--- Your Registered Polygons ---")
+# for poly in polygons:
+#     print(f"Name: {poly['name']}")
+#     print(f"ID:   {poly['id']}")  # <--- THIS IS THE VALUE YOU NEED
+#     print("-" * 30)
+    
 if __name__ == "__main__":
     print(fetch_soil_data())

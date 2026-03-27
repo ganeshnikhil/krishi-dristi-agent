@@ -13,8 +13,8 @@ if __name__ == "__main__":
     DB_PATH = "app/data/farmer_data.db"
     
     # Get model names from env
-    tool_model_name = os.getenv("SARVAM30_MODEL_NAME")
-    chat_model_name = os.getenv("SARVAM105_MODEL_NAME")
+    tool_model_name = os.getenv("SARVAM105_MODEL_NAME")
+    chat_model_name = os.getenv("SARVAM30_MODEL_NAME")
     
     # Initialize persistence
     with SqliteSaver.from_conn_string(DB_PATH) as checkpointer:

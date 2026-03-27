@@ -50,6 +50,28 @@ def predict_yield_simple(weights_path , crop_name, rain, pesticide, temp):
     prediction = model.predict(input_df)[0]
     return prediction
 
+
+
+def predict_crop(model_weights , n, p, k, temp, hum, ph, rain):
+    # 1. Load the saved pipeline
+    model = joblib.load(model_weights)
+    
+    # 2. Format input as a DataFrame (must match training column names)
+    input_data = pd.DataFrame([[n, p, k, temp, hum, ph, rain]], 
+                              columns=['N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall'])
+    
+    # 3. Predict
+    prediction = model.predict(input_data)
+    
+    # 4. (Optional) Get probabilities to see how "sure" the model is
+    # probabilities = model.predict_proba(input_data)
+    # confidence = max(probabilities[0])
+    
+    return prediction[0]
+
+
+
+
 # Example Test
 if __name__ == "__main__":
     sample_input = {

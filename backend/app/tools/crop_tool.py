@@ -1,90 +1,59 @@
-
-# from langchain.tools import tool
-# from app.models.loader import predict_yield_simple
-
-
-# @tool
-# def get_crop_prediction() -> str:
-#     """
-#     Retrieve internal environmental data and predict the most suitable crop
-#     for the current conditions without requiring user input.
-#     """
-#     current_temp = 28.4   # Celsius
-#     current_rain = 120.5  # mm
-#     crop_name = "Rice"
-#     current_pesticide = 1.5
-#     weights_path = "app/models/india_crop_yield_model.pkl"
-#     try:
-#         prediction = predict_yield_simple(
-#             weights_path,
-#             crop_name,
-#             current_rain,
-#             current_pesticide,
-#             current_temp
-#         )
-
-#         return (
-#             f"Analysis complete: based on a temperature of {current_temp}°C "
-#             f"and rainfall of {current_rain} mm, the best crop to grow is: {prediction}"
-#         )
-
-#     except Exception as e:
-#         return f"An unexpected error occurred: {str(e)}"
-
-
+import pandas as pd
 from typing import Type
 from pydantic import BaseModel
-
 from langchain.tools import BaseTool
-from app.models.loader import predict_yield_simple
+from app.models.loader import predict_crop  # ✅ Using your requested import
 
-
-# ✅ Empty schema (since no input is required)
+# ✅ Empty schema (matches your internal data pattern)
 class EmptyInput(BaseModel):
     pass
 
 
-class CropPredictionInternalTool(BaseTool):
-    name: str = "crop_prediction_internal"
+class CropRecommendationInternalTool(BaseTool):
+    name: str = "crop_recommendation_internal"
     description: str = (
-        "Predicts the most suitable crop using internal environmental data. "
-        "Does NOT require any user input. "
-        "Use this when crop recommendation is needed based on current conditions."
+        "Recommends the best crop to plant based on internal sensor data (NPK, pH, and climate). "
+        "Does NOT require user input. "
+        "Use this for real-time soil and climate-based crop suggestions."
     )
     args_schema: Type[BaseModel] = EmptyInput
 
     def _run(self) -> str:
-        # ✅ Hardcoded demo values
-        current_temp = 28.4   # Celsius
-        current_rain = 120.5  # mm
-        crop_name = "Rice"
-        current_pesticide = 1.5
+        # ✅ Internal Sensor/Demo values
+        # These represent the 7 features your Random Forest model expects
+        n, p, k = 90, 42, 43
+        temp = 20.8
+        hum = 82.0
+        ph = 6.5
+        rain = 202.9
 
-        weights_path = "app/models/india_crop_yield_model.pkl"
+        # Path to the pipeline we just saved (the .pkl file)
+        model_path = "app/models/crop_prediction_model.pkl"
 
         try:
-            prediction = predict_yield_simple(
-                weights_path,
-                crop_name,
-                current_rain,
-                current_pesticide,
-                current_temp
+            # ✅ Using your specific loader function
+            # This function likely returns the label (e.g., 'rice')
+            # and potentially the confidence score
+            prediction, confidence = predict_crop(
+                model_path,
+                n, p, k, 
+                temp, hum, ph, rain
             )
 
             return (
-                "🌾 Crop Prediction Result:\n"
-                f"- Crop Considered: {crop_name}\n"
-                f"- Temperature: {current_temp}°C\n"
-                f"- Rainfall: {current_rain} mm\n"
-                f"- Pesticide Level: {current_pesticide}\n\n"
-                f"👉 Recommended / Predicted Output: {prediction}"
+                "🌱 **Crop Recommendation Analysis**:\n"
+                "----------------------------------\n"
+                f"📍 **Soil Stats**: N:{n}, P:{p}, K:{k} | pH: {ph}\n"
+                f"🌦️ **Climate**: {temp}°C | {hum}% Humidity | {rain}mm Rain\n\n"
+                f"✅ **Suggested Crop**: {prediction.upper()}\n"
+                f"📊 **Model Confidence**: {confidence:.2f}%"
             )
 
         except Exception as e:
-            return f"❌ Error during crop prediction: {str(e)}"
+            return f"❌ Error during crop recommendation: {str(e)}"
 
     async def _arun(self, *args, **kwargs):
         raise NotImplementedError("Async not implemented")
-    
-    
-    
+
+
+
