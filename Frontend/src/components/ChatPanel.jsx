@@ -1,28 +1,22 @@
 // src/components/ChatPanel.jsx
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import './ChatPanel.css';
+import { useAuth } from '../context/AuthContext.jsx';
 
-const MOCK_RESPONSES = [
-  "Hello farmer! Soil moisture is at 42% — optimal for wheat right now.",
-  "Based on current weather, I recommend delaying irrigation by 24 hours.",
-  "Rain is expected tonight. No irrigation needed today.",
-  "Your wheat crop is at Stage 3. Fertilization is due in 3 days.",
-  "Soil pH is 6.8 — excellent for wheat. Keep monitoring daily.",
-  "High humidity today (82%). Watch for fungal disease on leaves.",
-  "Wind is from North-East at 12 km/h. Good conditions for spraying.",
-];
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-// Called by parent when voice query needs a bot reply.
-// Parent (App.jsx) manages the `messages` array.
 export default function ChatPanel({
   isOpen, onClose, messages, setMessages, isProcessing,
   isListening, startListening, stopListening
 }) {
-  const [input, setInput] = useState('');
+  const [input, setInput]         = useState('');
   const [localTyping, setLocalTyping] = useState(false);
+  const [error, setError]         = useState(null);
 
   const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
+  const inputRef       = useRef(null);
+
+  const { token } = useAuth();
 
   // Scroll to bottom whenever messages change
   useEffect(() => {
@@ -34,31 +28,56 @@ export default function ChatPanel({
     if (isOpen) setTimeout(() => inputRef.current?.focus(), 350);
   }, [isOpen]);
 
-  // ── Send typed message ────────────────────────────────────────────────────
-  const handleSend = () => {
+  // ── Send message to real backend ────────────────────────────
+  const sendToBackend = useCallback(async (text) => {
+    setLocalTyping(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API}/api/v1/chat/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ message: text }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || 'Failed to get a response from KrishiBot.');
+      }
+
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now() + 1, type: 'bot', text: data.reply, time: new Date() },
+      ]);
+    } catch (err) {
+      const errMsg = err.message || 'Network error. Please try again.';
+      setError(errMsg);
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now() + 1, type: 'bot', text: `⚠️ ${errMsg}`, time: new Date() },
+      ]);
+    } finally {
+      setLocalTyping(false);
+    }
+  }, [token, setMessages]);
+
+  // ── Handle typed message send ────────────────────────────────
+  const handleSend = useCallback(() => {
     const text = input.trim();
     if (!text || localTyping || isProcessing) return;
 
     setInput('');
-
-    // Add user message
     setMessages(prev => [
       ...prev,
       { id: Date.now(), type: 'user', text, time: new Date() },
     ]);
 
-    // Simulate bot reply
-    setLocalTyping(true);
-    const delay = 900 + Math.random() * 700;
-    setTimeout(() => {
-      const reply = MOCK_RESPONSES[Math.floor(Math.random() * MOCK_RESPONSES.length)];
-      setMessages(prev => [
-        ...prev,
-        { id: Date.now() + 1, type: 'bot', text: reply, time: new Date() },
-      ]);
-      setLocalTyping(false);
-    }, delay);
-  };
+    sendToBackend(text);
+  }, [input, localTyping, isProcessing, setMessages, sendToBackend]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
@@ -110,7 +129,7 @@ export default function ChatPanel({
             </div>
           ))}
 
-          {/* Typing indicator — shown during voice processing OR local text reply */}
+          {/* Typing indicator */}
           {(isProcessing || localTyping) && (
             <div className="cp-msg cp-msg--bot">
               <div className="cp-msg-avatar" aria-hidden="true">🌾</div>
@@ -136,9 +155,10 @@ export default function ChatPanel({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             aria-label="Chat input"
+            disabled={localTyping || isProcessing}
           />
 
-          {/* Voice input button inside chat panel */}
+          {/* Voice input button */}
           <button
             className={`cp-mic-btn${isListening ? ' cp-mic-active' : ''}`}
             onClick={() => isListening ? stopListening() : startListening()}

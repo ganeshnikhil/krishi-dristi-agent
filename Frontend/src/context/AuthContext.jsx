@@ -3,65 +3,86 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 
 const AuthContext = createContext(null);
 
-/* ── Mock API — swap this function body for real fetch later ── */
-async function mockLogin(username, password) {
-    await new Promise(r => setTimeout(r, 800));
-    if (username === 'farmer' && password === '1234') {
-        return { id: 1, username, name: 'Ramesh Kumar', role: 'farmer' };
-    }
-    throw new Error('Invalid username or password.');
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+/* ── Real API calls ── */
+async function apiLogin(username, password) {
+    const res = await fetch(`${API}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Login failed.');
+    // data = { access_token, user: { id, username, ... } }
+    return { token: data.access_token, user: data.user };
 }
 
-async function mockRegister(username, password) {
-    await new Promise(r => setTimeout(r, 900));
-    if (username.length < 3) throw new Error('Username must be at least 3 characters.');
-    return { id: Date.now(), username, name: username, role: 'farmer' };
+async function apiRegister(username, password) {
+    const res = await fetch(`${API}/api/v1/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Registration failed.');
+    // After register, log them in to get a token
+    return apiLogin(username, password);
 }
 /* ─────────────────────────────────────────────────────────── */
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);
+    const [user, setUser]           = useState(null);
+    const [token, setToken]         = useState(null);
     const [isAuthenticated, setIsAuth] = useState(false);
     const [pendingAction, setPendingAction] = useState(null); // 'mic' | 'chat' | null
 
     /* Rehydrate from localStorage on mount */
     useEffect(() => {
         try {
-            const saved = localStorage.getItem('km_user');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                setUser(parsed);
+            const savedUser  = localStorage.getItem('km_user');
+            const savedToken = localStorage.getItem('km_token');
+            if (savedUser && savedToken) {
+                setUser(JSON.parse(savedUser));
+                setToken(savedToken);
                 setIsAuth(true);
             }
-        } catch { localStorage.removeItem('km_user'); }
+        } catch { localStorage.removeItem('km_user'); localStorage.removeItem('km_token'); }
     }, []);
 
     const login = useCallback(async (username, password) => {
-        const userData = await mockLogin(username, password);
+        const { token: jwt, user: userData } = await apiLogin(username, password);
         setUser(userData);
+        setToken(jwt);
         setIsAuth(true);
-        localStorage.setItem('km_user', JSON.stringify(userData));
+        localStorage.setItem('km_user',  JSON.stringify(userData));
+        localStorage.setItem('km_token', jwt);
         return userData;
     }, []);
 
     const register = useCallback(async (username, password) => {
-        const userData = await mockRegister(username, password);
+        const { token: jwt, user: userData } = await apiRegister(username, password);
         setUser(userData);
+        setToken(jwt);
         setIsAuth(true);
-        localStorage.setItem('km_user', JSON.stringify(userData));
+        localStorage.setItem('km_user',  JSON.stringify(userData));
+        localStorage.setItem('km_token', jwt);
         return userData;
     }, []);
 
     const logout = useCallback(() => {
         setUser(null);
+        setToken(null);
         setIsAuth(false);
         setPendingAction(null);
         localStorage.removeItem('km_user');
+        localStorage.removeItem('km_token');
     }, []);
 
     return (
         <AuthContext.Provider value={{
             user,
+            token,
             isAuthenticated,
             pendingAction,
             setPendingAction,
