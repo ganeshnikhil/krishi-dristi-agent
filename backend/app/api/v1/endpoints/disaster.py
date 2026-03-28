@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from app.schemas.request import DisasterRequest
 from app.schemas.response import DisasterResponse, DisasterEvent
-from app.services.disaster_alert import fetch_disaster
+from app.services.disaster_alert import get_latest_disaster
 
 router = APIRouter()
 
@@ -9,7 +9,7 @@ router = APIRouter()
 @router.post("/disaster", response_model=DisasterResponse)
 def get_disaster_alert(payload: DisasterRequest):
     try:
-        data = fetch_disaster(payload.lat, payload.lng)
+        data = get_latest_disaster(payload.lat, payload.lng)
 
         results = data.get("result", [])
 
