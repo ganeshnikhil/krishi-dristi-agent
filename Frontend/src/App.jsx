@@ -16,6 +16,7 @@ import { useApp } from './context/AppContext.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 import useSpeechRecognition from './components/useSpeechRecognition'
 import { speakText } from './components/speakText'
+import AdvisoryTicker from './components/AdvisoryTicker.jsx'
 
 /* ── inline sub-components (no extra files needed) ── */
 
@@ -744,6 +745,7 @@ export default function App() {
             </div>
           </div>
         </section>
+      <AdvisoryTicker />   {/* ← ADD THIS */}
 
         <section className="timeline-section">
           <div className="section-divider" />
