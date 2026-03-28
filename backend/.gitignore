@@ -69,8 +69,6 @@ htmlcov/
 *.bak
 *.tmp
 *.cache
-
 *.sqlite
 *.db-wal
 *.db-shm
-
