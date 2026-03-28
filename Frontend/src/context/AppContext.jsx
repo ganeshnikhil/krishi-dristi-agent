@@ -15,9 +15,6 @@ export function AppProvider({ children }) {
   });
 
   const setLanguage = (lang) => {
-    console.log("SETTING LANGUAGE:", lang); // debug
-    setLanguageState(lang);
-    
     // ─── Set Google Translate Cookie ───
     const langCode = lang?.code || 'en';
     const cookieVal = `/en/${langCode}`;
@@ -30,7 +27,7 @@ export function AppProvider({ children }) {
       console.error("LocalStorage error:", e);
     }
 
-    // Refresh to apply Google Translate to the whole DOM
+    // Refresh to apply Google Translate to the static DOM shell
     window.location.reload();
   };
 

@@ -15,10 +15,11 @@ import ChatPanel from './components/ChatPanel.jsx'
 import { useApp } from './context/AppContext.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 import useSpeechRecognition from './components/useSpeechRecognition'
-import { speakText } from './components/speakText'
+import { speakText, stopSpeech } from './components/speakText'
 import AdvisoryTicker from './components/AdvisoryTicker.jsx'
 import SchemesListPage from './pages/SchemesListPage.jsx' 
 
+import { sarvamTranslate, isSarvamSupported } from './components/sarvamTranslate.js'
 
 /* ── inline sub-components (no extra files needed) ── */
 
@@ -452,11 +453,43 @@ export default function App() {
   const isUserScrolling = useRef(false)
   const scrollTimeout = useRef(null)
 
-  const { hasChosen, resetLanguage } = useApp()
+  const { hasChosen, resetLanguage, language, getSpeechCode } = useApp()
   const { isAuthenticated, token } = useAuth()
 
+  // ── Voice UI Helpers ──
+  const [isMuted, setIsMuted] = useState(false)
+  const [frequencies] = useState(new Array(24).fill(8)) // Static visualizer bars
+  const overlayEndRef = useRef(null)
+  const [translating, setTranslating] = useState(false) // shows 🔄 badge
+  const localLangCode = getSpeechCode(language?.code)
+  const langShortCode = language?.code ?? 'en'
+
+
+  /**
+   * Translate text with Sarvam AI.
+   * `to`   — short code of the TARGET language   (e.g. 'en' to send to the AI)
+   * `from` — short code of the SOURCE language   (e.g. 'hi' if the user spoke Hindi)
+   */
+  const translateText = useCallback(async (text, to, from) => {
+    if (!isSarvamSupported(from) && !isSarvamSupported(to)) return text
+    setTranslating(true)
+    try {
+      const result = await sarvamTranslate(text, to, from)
+      return result
+    } finally {
+      setTranslating(false)
+    }
+  }, [])
+
   const { transcript, isListening, startListening, stopListening, resetTranscript } =
-    useSpeechRecognition('en-IN')
+    useSpeechRecognition(localLangCode)
+
+  // Auto-scroll for voice transcript
+  useEffect(() => {
+    if (overlayEndRef.current) {
+      overlayEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [transcript, messages])
 
   const dates = Array.from({ length: daysInMonth * 3 }, (_, i) => (i % daysInMonth) + 1)
 
@@ -506,13 +539,38 @@ export default function App() {
 
   /* send query when mic stops */
   useEffect(() => {
-    if (!isListening && transcript.trim()) handleVoiceQuery(transcript.trim())
+    if (!isListening && transcript.trim()) handleAppQuery(transcript.trim())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isListening])
 
-  const handleVoiceQuery = useCallback(async (text) => {
-    setMessages(p => [...p, { id: Date.now(), type: 'user', text, time: new Date() }])
+  const handleAppQuery = useCallback(async (rawText, isTextSource = false) => {
     setIsProcessing(true)
+    resetTranscript()
+
+    const userMsgId = Date.now()
+    // Show user's spoken text in their language immediately
+    setMessages(p => [...p, { id: userMsgId, type: 'user', text: rawText, isTranslating: langShortCode !== 'en', lang: language?.nativeName, time: new Date() }])
+
+    // Translate user's message TO English for the backend
+    let queryForBackend = rawText
+    if (langShortCode !== 'en' && isSarvamSupported(langShortCode)) {
+      queryForBackend = await translateText(rawText, 'en', langShortCode)
+      // Update bubble: mark translation done
+      setMessages(p => {
+        const next = [...p]
+        const idx = next.findIndex(m => m.id === userMsgId)
+        if (idx !== -1) next[idx] = { ...next[idx], isTranslating: false }
+        return next
+      })
+    } else {
+      setMessages(p => {
+        const next = [...p]
+        const idx = next.findIndex(m => m.id === userMsgId)
+        if (idx !== -1) next[idx] = { ...next[idx], isTranslating: false }
+        return next
+      })
+    }
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
       const res = await fetch(`${apiUrl}/api/v1/chat/`, {
@@ -521,19 +579,26 @@ export default function App() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: queryForBackend }),
       })
       const data = await res.json()
-      const reply = res.ok ? data.reply : (data.detail || 'Something went wrong.')
-      setMessages(p => [...p, { id: Date.now() + 1, type: 'bot', text: reply, time: new Date() }])
-      speakText(reply, 'en-IN')
+      let reply = res.ok ? data.reply : (data.detail || 'Something went wrong.')
+
+      // Translate bot reply back to user's language
+      let displayReply = reply
+      if (langShortCode !== 'en' && isSarvamSupported(langShortCode)) {
+        displayReply = await translateText(reply, langShortCode, 'en')
+      }
+
+      setMessages(p => [...p, { id: Date.now() + 1, type: 'bot', text: displayReply, time: new Date() }])
+      if (!isMuted && !isTextSource) speakText(displayReply, localLangCode)
     } catch {
       setMessages(p => [...p, { id: Date.now() + 1, type: 'bot', text: '⚠️ Network error. Please try again.', time: new Date() }])
     } finally {
       setIsProcessing(false)
       resetTranscript()
     }
-  }, [resetTranscript, token])
+  }, [resetTranscript, token, langShortCode, localLangCode, language, isMuted, translateText])
 
   const handleScroll = () => {
     if (!sliderRef.current) return
@@ -558,12 +623,15 @@ export default function App() {
   }
 
   const handleCloseVoice = () => {
-    stopListening(); setIsChatPanelOpen(false); setIsChatOpen(false)
+    stopListening();
+    stopSpeech();
+    setIsChatPanelOpen(false);
+    setIsChatOpen(false)
   }
 
   const handleLocationClick = useCallback(() => {
     if (!isAuthenticated) {
-      guardedAction('location', () => {})
+      guardedAction('location', () => { })
       return
     }
 
@@ -614,7 +682,7 @@ export default function App() {
                   setWeatherData(wData);
                 }
               }
-            } catch (err) {}
+            } catch (err) { }
           } else {
             setLocationText('Dehradun, IN')
             alert('Failed to update location on server.')
@@ -661,14 +729,25 @@ if (showSchemes) {
           </div>
         </div>
         <div className="navbar-center">
-          <div 
-            className="location-chip" 
+          <div
+            className="location-chip"
             onClick={handleLocationClick}
             style={{ cursor: isUpdatingLocation ? 'wait' : 'pointer', opacity: isUpdatingLocation ? 0.7 : 1 }}
             title="Update Location"
           >
-            <span className="location-dot" /><span>{locationText}</span>
+            <span className="location-dot" />
+            <span>{isUpdatingLocation ? '📡 Locating…' : locationText}</span>
           </div>
+          {language && language.code !== 'en' && (
+            <div
+              className="lang-badge"
+              onClick={resetLanguage}
+              title={`Language: ${language.name} — click to change`}
+            >
+              <span>{language.flag || '🌐'}</span>
+              <span>{language.nativeName}</span>
+            </div>
+          )}
         </div>
         <button className="nav-icon-btn language-btn" onClick={resetLanguage} title="Change Language">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -709,7 +788,7 @@ if (showSchemes) {
                 <span className="hero-temp-unit">C</span>
               </div>
               <div className="hero-desc">
-                {weatherData?.weather?.[0]?.description 
+                {weatherData?.weather?.[0]?.description
                   ? weatherData.weather[0].description.charAt(0).toUpperCase() + weatherData.weather[0].description.slice(1)
                   : 'Continuous showers'} · Feels like {weatherData ? Math.round(weatherData.main.feels_like) : 21}°C
               </div>
@@ -750,7 +829,7 @@ if (showSchemes) {
             </div>
           </div>
         </section>
-      <AdvisoryTicker />   {/* ← ADD THIS */}
+        <AdvisoryTicker />
 
         <section className="timeline-section">
           <div className="section-divider" />
@@ -848,7 +927,7 @@ if (showSchemes) {
           <button
             className="chatbot-fab"
             title={isAuthenticated ? 'Chat with KrishiBot' : 'Login to chat'}
-            onClick={() => guardedAction('chat', () => { setIsChatOpen(true); setIsChatPanelOpen(true) })}
+            onClick={() => guardedAction('mic', () => { setIsChatOpen(true); setIsChatPanelOpen(false) })}
           >
             <div className="chatbot-fab-ring" />
             <img src={farmerGif} alt="Farmer" className="chatbot-avatar-img" />
@@ -859,13 +938,18 @@ if (showSchemes) {
 
       {/* VOICE OVERLAY */}
       {isChatOpen && (
-        <div className="voice-chat-overlay">
+        <div className="voice-chat-overlay notranslate">
           <div className="chat-header">
             <div className="chat-header-left">
               <div className="chat-avatar">🌾</div>
               <div>
                 <div className="chat-title">KrishiBot</div>
-                <div className="chat-subtitle">AI Farm Assistant</div>
+                <div className="chat-subtitle">
+                  {translating
+                    ? <><span className="translate-spinner">⟳</span> Translating…</>
+                    : 'AI Farm Assistant'
+                  }
+                </div>
               </div>
             </div>
             <button className="close-chat" onClick={handleCloseVoice} aria-label="Close">
@@ -875,72 +959,116 @@ if (showSchemes) {
             </button>
           </div>
 
-          <div className="voice-visualizer">
-            <div className="nebula-blob" />
-            <div className="nebula-blob nebula-blob-2" />
-            <div className={`frequency-bars${isListening ? ' bars-active' : ''}`}>
-              {[...Array(11)].map((_, i) => <div key={i} className={`freq-bar bar-${i + 1}`} />)}
-            </div>
-          </div>
-
-          <div className="chat-text-container">
-            {isProcessing ? (
-              <div className="processing-dots" aria-label="Processing"><span /><span /><span /></div>
-            ) : transcript.trim() ? (
-              <div className="transcript-lines" aria-live="polite">
-                {getTranscriptLines(transcript).map((line, i, arr) => {
-                  const isLast = i === arr.length - 1
-                  return (
-                    <div key={i} className={`transcript-line${isLast ? ' transcript-line--active' : ''}`}
-                      style={{ opacity: 0.3 + (i / arr.length) * 0.7, fontSize: isLast ? '1.4rem' : '1.05rem', fontWeight: isLast ? 600 : 400 }}>
-                      {line}{isLast && <span className="cursor" aria-hidden="true">|</span>}
-                    </div>
-                  )
-                })}
+          {!isChatPanelOpen && (
+            <div className="voice-overlay-content">
+              {/* Visualizer at top */}
+              <div className="voice-visualizer">
+                <div className="nebula-blob" />
+                <div className="nebula-blob nebula-blob-2" />
+                <div className={`frequency-bars${isListening ? ' bars-active' : ''}`}>
+                  {frequencies.map((freq, i) => (
+                    <div
+                      key={i}
+                      className={`freq-bar bar-${i + 1}`}
+                      style={{
+                        height: isListening ? `${Math.max(8, freq / 2.5)}px` : '8px',
+                        transition: 'height 0.05s linear'
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
-            ) : (
-              <div className="transcript-placeholder">
-                {isListening ? 'Listening to you…' : 'Tap the mic to speak'}
+
+              {/* Focused Interaction Stage (No Scroll) */}
+              <div className="voice-interaction-stage notranslate">
+                {messages.length > 1 && messages.slice(-2).map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`voice-bubble voice-bubble--${msg.type}`}
+                  >
+                    <span>{msg.text}</span>
+                  </div>
+                ))}
+
+                {/* Live transcript while mic is on */}
+                {isListening && transcript.trim() && (
+                  <div className="voice-live-transcript" aria-live="polite">
+                    {transcript.trim()}
+                    <span className="cursor" aria-hidden="true">|</span>
+                  </div>
+                )}
+
+                {/* Processing */}
+                {isProcessing && (
+                  <div className="voice-bubble voice-bubble--bot">
+                    <div className="processing-dots" aria-label="Processing"><span /><span /><span /></div>
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {messages.filter(m => m.type !== 'system').length === 0 && !transcript.trim() && !isProcessing && (
+                  <div className="transcript-placeholder">
+                    {isListening ? `🎤 Listening in ${language?.name || 'English'}…` : 'Tap the mic to speak'}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <div className="chat-action-row">
-            <div className="bot-status">
-              {isListening
-                ? <><span className="status-dot status-dot--recording" /><span className="recording-timer">{formatTimer(recordingTime)}</span></>
-                : <><span className="status-dot" /><span>{isProcessing ? 'Processing…' : 'Ready'}</span></>
-              }
+              <div className="chat-action-row">
+                <div className="bot-status">
+                  {isListening
+                    ? <><span className="status-dot status-dot--recording" /><span className="recording-timer">{formatTimer(recordingTime)}</span></>
+                    : <><span className="status-dot" /><span>{isProcessing ? 'Processing…' : 'Ready'}</span></>
+                  }
+                </div>
+
+                {/* mic — also guarded */}
+                <button
+                  className={`chat-mic-btn${isListening ? ' mic-active' : ''}`}
+                  onClick={() => {
+                    if (isListening) { stopListening(); return }
+                    guardedAction('mic', startListening)
+                  }}
+                  aria-label={isListening ? 'Stop recording' : 'Start recording'}
+                >
+                  {isListening ? (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2" /></svg>
+                  ) : (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="2" width="6" height="12" rx="3" />
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                      <line x1="12" y1="19" x2="12" y2="22" />
+                      <line x1="8" y1="22" x2="16" y2="22" />
+                    </svg>
+                  )}
+                </button>
+
+                <button
+                  className={`chat-speaker-btn${isMuted ? ' muted' : ''}`}
+                  onClick={() => {
+                    setIsMuted(!isMuted);
+                    if (!isMuted) stopSpeech(); // Silence instantly if muting
+                  }}
+                  aria-label={isMuted ? 'Unmute AI' : 'Mute AI'}
+                >
+                  {isMuted ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 5L6 9H2v6h4l5 4V5z" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" />
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 5L6 9H2v6h4l5 4V5z" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    </svg>
+                  )}
+                </button>
+                <button className="chat-panel-btn" onClick={() => setIsChatPanelOpen(true)} aria-label="Open chat">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  {messages.length > 1 && <span className="chat-panel-badge">{messages.length - 1}</span>}
+                </button>
+              </div>
             </div>
-
-            {/* mic — also guarded */}
-            <button
-              className={`chat-mic-btn${isListening ? ' mic-active' : ''}`}
-              onClick={() => {
-                if (isListening) { stopListening(); return }
-                guardedAction('mic', startListening)
-              }}
-              aria-label={isListening ? 'Stop recording' : 'Start recording'}
-            >
-              {isListening ? (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2" /></svg>
-              ) : (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="9" y="2" width="6" height="12" rx="3" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="22" />
-                  <line x1="8" y1="22" x2="16" y2="22" />
-                </svg>
-              )}
-            </button>
-
-            <button className="chat-panel-btn" onClick={() => setIsChatPanelOpen(true)} aria-label="Open chat">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              {messages.length > 1 && <span className="chat-panel-badge">{messages.length - 1}</span>}
-            </button>
-          </div>
+          )}
 
           <ChatPanel
             isOpen={isChatPanelOpen}
@@ -948,6 +1076,9 @@ if (showSchemes) {
             messages={messages}
             setMessages={setMessages}
             isProcessing={isProcessing}
+            handleTextQuery={(text) => handleAppQuery(text, true)}
+            onSwitchToVoice={() => { setIsChatPanelOpen(false); setIsChatOpen(true); }}
+            onSpeak={(text) => speakText(text, localLangCode)}
           />
         </div>
       )}
