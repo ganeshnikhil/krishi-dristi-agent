@@ -322,6 +322,7 @@
             <button class="step-btn active" id="stepBtn1">1 · Login</button>
             <button class="step-btn" id="stepBtn2">2 · Location</button>
             <button class="step-btn" id="stepBtn3">3 · Chat</button>
+            <button class="step-btn" onclick="startNewChatSession()" style="cursor:pointer; color:#0056b3">New Chat</button>
             <button class="step-btn" onclick="doLogout()" style="cursor:pointer; color:#721c24">Logout</button>
         </div>
 
@@ -397,6 +398,7 @@
 
         let token = localStorage.getItem('token');
         let username = localStorage.getItem('username');
+        let chatSessionId = localStorage.getItem('chatSessionId') || crypto.randomUUID();
 
         // On load, if token exists, try to skip to location or chat
         window.addEventListener('load', () => {
@@ -440,6 +442,18 @@
         function doLogout() {
             localStorage.clear();
             location.reload();
+        }
+
+        function startNewChatSession() {
+            chatSessionId = crypto.randomUUID();
+            localStorage.setItem('chatSessionId', chatSessionId);
+            document.getElementById('chatBox').innerHTML = `
+                <div class="msg msg-agent">
+                    <div class="msg-label">🌾 Krishi AI</div>
+                    <div class="bubble">Namaste! 🙏 A new session has started. How can I help you today?</div>
+                </div>
+            `;
+            goToStep(3);
         }
 
         // ── Step 1: Auth ─────────────────────────────────────────────
@@ -598,7 +612,7 @@
                 const res = await fetch(`${API}/chat/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                    body: JSON.stringify({ message: msg })
+                    body: JSON.stringify({ message: msg, session_id: chatSessionId })
                 });
                 const data = await res.json();
                 removeTyping();

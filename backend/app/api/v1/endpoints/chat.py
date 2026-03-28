@@ -76,6 +76,7 @@
 
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
+from typing import Optional
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.sqlite import SqliteSaver
 
@@ -165,6 +166,7 @@ def _get_username_from_token(authorization: str) -> str:
 # ✅ REQUEST / RESPONSE MODELS
 class ChatRequest(BaseModel):
     message: str
+    session_id: Optional[str] = "default"
 
 
 class ChatResponse(BaseModel):
@@ -196,13 +198,14 @@ def chat(body: ChatRequest, authorization: str = Header(...)):
             )
 
         reply = response["messages"][-1].content
+        session_id = body.session_id or "default"
 
-        # ✅ Persist ALL chat to MongoDB (Single document per user with messages array)
+        # ✅ Persist chat to MongoDB grouped by username AND session_id
         from app.db.session import get_db
         from datetime import datetime
         db = get_db()
         db.chat_history.update_one(
-            {"username": username},
+            {"username": username, "session_id": session_id},
             {
                 "$push": {
                     "messages": {
@@ -241,26 +244,36 @@ def chat(body: ChatRequest, authorization: str = Header(...)):
 
 
 @router.get("/history", response_model=ChatHistoryOut, summary="Retrieve chat history from MongoDB")
-def get_chat_history(authorization: str = Header(...)):
-    """Fetch all past user/agent interactions for this user."""
+def get_chat_history(authorization: str = Header(...), session_id: Optional[str] = None):
+    """Fetch past interactions. If session_id provided, fetch that specific session."""
     username = _get_username_from_token(authorization)
     from app.db.session import get_db
     db = get_db()
     
-    doc = db.chat_history.find_one({"username": username})
+    query = {"username": username}
+    if session_id:
+        query["session_id"] = session_id
+        doc = db.chat_history.find_one(query)
+        docs = [doc] if doc else []
+    else:
+        # Return all sessions for this user
+        docs = db.chat_history.find(query).sort("session_id", 1)
     
     history = []
-    if doc and "messages" in doc:
-        for m in doc["messages"]:
-            history.append({
-                "role": "user",
-                "content": m["user_message"],
-                "timestamp": m["timestamp"]
-            })
-            history.append({
-                "role": "assistant",
-                "content": m["agent_reply"],
-                "timestamp": m["timestamp"]
-            })
+    for doc in docs:
+        if "messages" in doc:
+            for m in doc["messages"]:
+                history.append({
+                    "role": "user",
+                    "content": m["user_message"],
+                    "timestamp": m["timestamp"],
+                    "session_id": doc.get("session_id", "default")
+                })
+                history.append({
+                    "role": "assistant",
+                    "content": m["agent_reply"],
+                    "timestamp": m["timestamp"],
+                    "session_id": doc.get("session_id", "default")
+                })
     
     return ChatHistoryOut(messages=history)
