@@ -1,11 +1,12 @@
 import os
 from dotenv import load_dotenv
-from langchain.messages import HumanMessage
+from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.sqlite import SqliteSaver
 
 # Your custom app imports
 from app.agents.online_farmer_agent import get_sarvam_llm, create_farmer_agent, call_chat_only
 from app.agents.router_logic import get_routing_decision
+from app.core.user_context import set_current_user
 
 load_dotenv()
 
@@ -49,6 +50,8 @@ if __name__ == "__main__":
                 
                 if decision == "TOOL":
                     print(f"[System] 🛠️ Routing to Agricultural Tool Agent...")
+                    # ✅ Set the active user so tools read the right location & crop
+                    set_current_user(current_user)
                     response = agent.invoke(
                         {"messages": [HumanMessage(content=user_query)]},
                         config=config

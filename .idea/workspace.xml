@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="5fd3a653-ac54-4db0-9419-bd707710f00f" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/backend/app/agents/online_farmer_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/agents/online_farmer_agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/api/v1/router.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/api/v1/router.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/data/weather_cache.sqlite" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/data/weather_cache.sqlite" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/tools/crop_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/tools/crop_tool.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/tools/fertilizer_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/tools/fertilizer_tool.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/tools/rain_fall.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/tools/rain_fall.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/tools/soil_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/tools/soil_tool.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/tools/weather_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/tools/weather_tool.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/tools/yield_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/tools/yield_tool.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Omfalcon&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/Omfalcon/krishi-dristi-agent.git",
+    "accountId": "0e885454-c3fc-494c-acea-8ac8ada17af7"
+  }
+}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="3BUhAiLJe2ttI00CIoMXlkxenMM" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python tests.pytest in test_rag.py.executor": "Run",
+    "Python.build_scheme_index.executor": "Run",
+    "Python.crop_tool.executor": "Run",
+    "Python.farm_advice_tool.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.seeding.executor": "Run",
+    "Python.test_all_tools.executor": "Run",
+    "Python.test_scheme_rag.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "rag__om",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "C:/Users/hp/PycharmProjects/krishi-dristi-agent",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-09060db00ec0-JavaScript-PY-251.26927.90" />
+        <option value="bundled-python-sdk-41e8cd69c857-64d779b69b7a-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.26927.90" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="5fd3a653-ac54-4db0-9419-bd707710f00f" name="Changes" comment="" />
+      <created>1774549415405</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1774549415405</updated>
+      <workItem from="1774549416499" duration="5131000" />
+      <workItem from="1774558824895" duration="13745000" />
+      <workItem from="1774649158742" duration="21847000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/krishi_dristi_agent$test_all_tools.coverage" NAME="test_all_tools Coverage Results" MODIFIED="1774649578467" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/scripts" />
+    <SUITE FILE_PATH="coverage/krishi_dristi_agent$main.coverage" NAME="main Coverage Results" MODIFIED="1774560868488" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
+    <SUITE FILE_PATH="coverage/krishi_dristi_agent$pytest_in_test_rag_py.coverage" NAME="pytest in test_rag.py Coverage Results" MODIFIED="1774558385679" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/tests" />
+    <SUITE FILE_PATH="coverage/krishi_dristi_agent$build_scheme_index.coverage" NAME="build_scheme_index Coverage Results" MODIFIED="1774565518559" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/scripts" />
+    <SUITE FILE_PATH="coverage/krishi_dristi_agent$seeding.coverage" NAME="seeding Coverage Results" MODIFIED="1774562505625" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
+    <SUITE FILE_PATH="coverage/krishi_dristi_agent$test_scheme_rag.coverage" NAME="test_scheme_rag Coverage Results" MODIFIED="1774566540921" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/scripts" />
+    <SUITE FILE_PATH="coverage/krishi_dristi_agent$farm_advice_tool.coverage" NAME="farm_advice_tool Coverage Results" MODIFIED="1774639792988" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/app/tools" />
+    <SUITE FILE_PATH="coverage/krishi_dristi_agent$crop_tool.coverage" NAME="crop_tool Coverage Results" MODIFIED="1774651711305" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/app/tools" />
+  </component>
+</project>

@@ -1,68 +1,10 @@
-# from langchain.tools import tool
-# from app.services.weather_service import get_weather_data
-
-# from typing import Literal
-# from pydantic import BaseModel, Field
-
-
-# class WeatherInputSchema(BaseModel):
-#     option: Literal["current", "minutely", "hourly", "daily", "alerts"] = Field(
-#         ...,
-#         description=(
-#             "Weather data type to fetch. "
-#             "'current' returns current weather conditions like temperature and humidity. "
-#             "'minutely' returns minute-by-minute precipitation forecast for the next 1 hour. "
-#             "'hourly' returns hourly forecast for the next 48 hours. "
-#             "'daily' returns daily forecast for the next 8 days. "
-#             "'alerts' returns government-issued weather warnings or alerts."
-#         ),
-#     )
-
-
-
-# @tool(args_schema=WeatherInputSchema)
-# def get_weather_data(option: str) -> dict:
-#     """Fetch weather data by excluding selected sections."""
-#     lat = 123.4
-#     lon = 244.5
-#     return get_weather_data(lat, lon, [option])
-
-
-
-
-# from langchain.tools import tool
-# from app.services.weather_service import get_weather_data 
-
-
-# @tool
-# def get_weather_info() -> str:
-#     """
-#     Use this tool to get weather information for the farmer's location.
-#     Do NOT ask the user for weather parameters. Location is handled internally.
-#     """
-
-#     # ✅ Replace with dynamic location later
-#     lat = 28.6139
-#     lon = 77.2090
-
-
-#     try:
-#         data = get_weather_data(lat, lon)
-#         return data
-#     except Exception as e:
-#         return f"Unable to fetch weather data right now."
-
-# print(get_weather_info())
-
-
 from typing import Type
 from pydantic import BaseModel
-
 from langchain.tools import BaseTool
 from app.services.weather_service import get_weather_data
+from app.core.user_context import get_active_location
 
 
-# ✅ Empty schema (no user input required)
 class EmptyInput(BaseModel):
     pass
 
@@ -70,24 +12,33 @@ class EmptyInput(BaseModel):
 class WeatherInfoTool(BaseTool):
     name: str = "weather_data_internal"
     description: str = (
-        "Fetches weather information (temperature, humidity, etc.) for the farmer's location. "
+        "Fetches real-time weather information (temperature, humidity, rain, etc.) for the farmer's GPS location. "
         "Does NOT require user input. "
         "Use this when current weather conditions are needed."
     )
     args_schema: Type[BaseModel] = EmptyInput
 
     def _run(self) -> str:
-        # ✅ Hardcoded location (can replace later)
-        lat = 28.6139
-        lon = 77.2090
+        lat, lon = get_active_location()
 
         try:
             data = get_weather_data(lat, lon)
 
+            temp     = data.get("main", {}).get("temp", "N/A")
+            humidity = data.get("main", {}).get("humidity", "N/A")
+            desc     = data.get("weather", [{}])[0].get("description", "N/A")
+            wind     = data.get("wind", {}).get("speed", "N/A")
+            city     = data.get("name", f"({lat:.3f}, {lon:.3f})")
+            rain_1h  = data.get("rain", {}).get("1h", 0)
+
             return (
-                "🌤️ Weather Report:\n"
-                f"- Location: ({lat}, {lon})\n\n"
-                f"👉 Weather Details:\n{data}"
+                f"🌤️ **Weather Report** — {city}\n"
+                f"📍 Coordinates: ({lat:.4f}, {lon:.4f})\n\n"
+                f"🌡️ Temperature : {temp} °C\n"
+                f"💧 Humidity    : {humidity} %\n"
+                f"🌧️ Rain (1h)   : {rain_1h} mm\n"
+                f"💨 Wind Speed  : {wind} m/s\n"
+                f"☁️ Conditions  : {desc.capitalize()}"
             )
 
         except Exception as e:
