@@ -510,6 +510,37 @@ export default function App() {
   const handleVoiceQuery = useCallback(async (text) => {
     setMessages(p => [...p, { id: Date.now(), type: 'user', text, time: new Date() }])
     setIsProcessing(true)
+<<<<<<< Updated upstream
+=======
+    let nativeQuery = text
+    const messageId = Date.now()
+
+    // Clear voice overlay immediately and slide up the panel so they see the translation pipeline in action
+    resetTranscript()
+
+    // Optimistic UI update: instantly show the user's raw text with active translation tag
+    setMessages(p => [...p, { id: messageId, type: 'user', text: text, isTranslating: true, time: new Date() }])
+
+    // "Translate it to the language it is"
+    if (localLangCode !== 'en-IN') {
+      nativeQuery = await translateText(text, 'en-IN', localLangCode)
+      // Morph the existing message bubble into the pure script and clear the translating tag
+      setMessages(p => {
+        const next = [...p];
+        const idx = next.findIndex(m => m.id === messageId);
+        if (idx !== -1) next[idx] = { ...next[idx], text: nativeQuery, isTranslating: false };
+        return next;
+      })
+    } else {
+      setMessages(p => {
+        const next = [...p];
+        const idx = next.findIndex(m => m.id === messageId);
+        if (idx !== -1) next[idx] = { ...next[idx], isTranslating: false };
+        return next;
+      })
+    }
+
+>>>>>>> Stashed changes
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
       const res = await fetch(`${apiUrl}/api/v1/chat/`, {
@@ -555,7 +586,14 @@ export default function App() {
   }
 
   const handleCloseVoice = () => {
+<<<<<<< Updated upstream
     stopListening(); setIsChatPanelOpen(false); setIsChatOpen(false)
+=======
+    stopListening();
+    stopSpeech();
+    setIsChatPanelOpen(false);
+    setIsChatOpen(false)
+>>>>>>> Stashed changes
   }
 
   const handleLocationClick = useCallback(() => {
@@ -745,7 +783,11 @@ export default function App() {
             </div>
           </div>
         </section>
+<<<<<<< Updated upstream
       <AdvisoryTicker />   {/* ← ADD THIS */}
+=======
+        <AdvisoryTicker />   {/* ← ADD THIS */}
+>>>>>>> Stashed changes
 
         <section className="timeline-section">
           <div className="section-divider" />
@@ -864,6 +906,7 @@ export default function App() {
             </button>
           </div>
 
+<<<<<<< Updated upstream
           <div className="voice-visualizer">
             <div className="nebula-blob" />
             <div className="nebula-blob nebula-blob-2" />
@@ -871,6 +914,27 @@ export default function App() {
               {[...Array(11)].map((_, i) => <div key={i} className={`freq-bar bar-${i + 1}`} />)}
             </div>
           </div>
+=======
+          {!isChatPanelOpen && (
+            <div className="voice-overlay-content">
+              {/* Move visualizer to the top */}
+              <div className="voice-visualizer">
+                <div className="nebula-blob" />
+                <div className="nebula-blob nebula-blob-2" />
+                <div className={`frequency-bars${isListening ? ' bars-active' : ''}`}>
+                  {frequencies.map((freq, i) => (
+                    <div
+                      key={i}
+                      className={`freq-bar bar-${i + 1}`}
+                      style={{
+                        height: isListening ? `${Math.max(8, freq / 2.5)}px` : '8px',
+                        transition: 'height 0.05s linear'
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+>>>>>>> Stashed changes
 
           <div className="chat-text-container">
             {isProcessing ? (
@@ -886,6 +950,26 @@ export default function App() {
                     </div>
                   )
                 })}
+<<<<<<< Updated upstream
+=======
+
+                {/* 3. Show dots nicely as a bot bubble while processing */}
+                {isProcessing && (
+                  <div className="overlay-msg overlay-msg-bot">
+                    <div className="processing-dots" aria-label="Processing"><span /><span /><span /></div>
+                  </div>
+                )}
+
+                {/* Dummy ref to align the auto-scroll */}
+                <div ref={overlayEndRef} style={{ float: 'left', clear: 'both', height: '2px' }} />
+
+                {/* Prompt state if entirely empty */}
+                {messages.length <= 1 && !transcript.trim() && !isProcessing && (
+                  <div className="transcript-placeholder" style={{ marginTop: 'auto', marginBottom: 'auto' }}>
+                    {isListening ? 'Listening to you…' : 'Tap the mic to speak'}
+                  </div>
+                )}
+>>>>>>> Stashed changes
               </div>
             ) : (
               <div className="transcript-placeholder">
@@ -923,6 +1007,28 @@ export default function App() {
               )}
             </button>
 
+<<<<<<< Updated upstream
+=======
+            <button
+              className={`chat-speaker-btn${isMuted ? ' muted' : ''}`}
+              onClick={() => {
+                setIsMuted(!isMuted);
+                if (!isMuted) stopSpeech(); // Silence instantly if muting
+              }}
+              aria-label={isMuted ? 'Unmute AI' : 'Mute AI'}
+            >
+              {isMuted ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 5L6 9H2v6h4l5 4V5z" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" />
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 5L6 9H2v6h4l5 4V5z" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                </svg>
+              )}
+            </button>
+
+>>>>>>> Stashed changes
             <button className="chat-panel-btn" onClick={() => setIsChatPanelOpen(true)} aria-label="Open chat">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
