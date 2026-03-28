@@ -10,9 +10,10 @@ import LanguageSelect from './components/LanguageSelect.jsx'
 import { useApp } from './context/AppContext.jsx'
 import useSpeechRecognition from './components/useSpeechRecognition'
 import { speakText } from './components/speakText'
-import ChatPanel from './components/ChatPanel.jsx'   // NEW
+import ChatPanel from './components/ChatPanel.jsx'
+import farmerGif from "./assets/farmer-avatar.gif";
 
-/* ── Mock API responses (replace with real fetch later) ── */
+
 const MOCK_RESPONSES = [
   "Hello farmer! Soil moisture is at 42% — optimal for wheat right now.",
   "Based on current weather, I recommend delaying irrigation by 24 hours.",
@@ -315,18 +316,18 @@ function App() {
       {/* CHATBOT FAB */}
       {!isChatOpen && (
         <div className="chatbot-container">
-          <div className="chatbot-plant plant-1"><div className="plant-stem"/><div className="plant-flower">🌸</div></div>
-          <div className="chatbot-plant plant-2"><div className="plant-stem"/><div className="plant-flower">🌻</div></div>
-          <div className="chatbot-plant plant-3"><div className="plant-stem"/><div className="plant-flower">🌷</div></div>
           <button className="chatbot-fab" title="Chat with KrishiBot" onClick={() => setIsChatOpen(true)}>
             <div className="chatbot-fab-ring"/>
-            <div className="chatbot-fab-icon">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/>
-                <path d="M2 14h2"/><path d="M20 14h2"/>
-                <path d="M15 13v2"/><path d="M9 13v2"/>
-              </svg>
-            </div>
+           <button
+  className="chatbot-fab"
+  onClick={() => setIsChatOpen(true)}
+>
+  <img 
+   src={farmerGif} 
+    alt="Farmer" 
+    className="chatbot-avatar-img"
+  />
+</button>
           </button>
           <div className="chatbot-fab-label">KrishiBot</div>
         </div>
