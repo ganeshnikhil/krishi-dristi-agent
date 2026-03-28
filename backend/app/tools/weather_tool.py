@@ -12,9 +12,8 @@ class EmptyInput(BaseModel):
 class WeatherInfoTool(BaseTool):
     name: str = "weather_data_internal"
     description: str = (
-        "Fetches real-time weather information (temperature, humidity, rain, etc.) for the farmer's GPS location. "
-        "Does NOT require user input. "
-        "Use this when current weather conditions are needed."
+        "Automatically fetches current and 3-day weather forecasts for the farmer's GPS location. "
+        "Use this to provide proactive agricultural advice (e.g., irrigation or harvest planning)."
     )
     args_schema: Type[BaseModel] = EmptyInput
 
