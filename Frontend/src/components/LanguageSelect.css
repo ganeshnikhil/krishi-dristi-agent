@@ -1,0 +1,310 @@
+/* ===== BACKDROP ===== */
+.ls-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.65),
+    rgba(20, 40, 30, 0.6)
+  );
+
+  backdrop-filter: blur(12px);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ===== SHEET ===== */
+.ls-sheet {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 26px;
+  padding-bottom: 40px;
+
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+
+  animation: ls-sheet-up 0.45s ease,
+             ls-scale-in 0.3s ease;
+
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+/* animations */
+@keyframes ls-sheet-up {
+  from { transform: translateY(60px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes ls-scale-in {
+  from { transform: scale(0.96); }
+  to   { transform: scale(1); }
+}
+
+/* ===== HANDLE ===== */
+.ls-handle {
+  width: 40px;
+  height: 4px;
+  background: #ddd;
+  border-radius: 2px;
+  margin: 14px auto 20px;
+}
+
+/* ===== HEADER ===== */
+.ls-header {
+  text-align: center;
+  padding: 0 24px;
+  margin-bottom: 22px;
+}
+
+.ls-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ls-brand-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+
+  background: linear-gradient(145deg, #2e7d32, #43a047);
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+
+  box-shadow: 0 8px 24px rgba(46, 125, 50, 0.35);
+}
+
+.ls-brand-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.ls-brand-name .k { color: #2e7d32; }
+.ls-brand-name .m { color: #5d4037; }
+
+.ls-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.ls-subtitle {
+  font-size: 0.8rem;
+  color: #777;
+}
+
+/* ===== PRIMARY BUTTONS ===== */
+.ls-primary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 20px;
+  margin-bottom: 16px;
+}
+
+.ls-primary-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  padding: 16px;
+  border-radius: 16px;
+  border: 2px solid transparent;
+
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.ls-primary-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Hindi */
+.ls-btn-hindi {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.ls-btn-hindi:hover {
+  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.2);
+}
+
+/* English */
+.ls-btn-english {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+.ls-btn-english:hover {
+  box-shadow: 0 6px 20px rgba(21, 101, 192, 0.2);
+}
+
+/* flag */
+.ls-btn-flag {
+  font-size: 26px;
+  width: 44px;
+  height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+  background: white;
+}
+
+/* text */
+.ls-btn-info {
+  flex: 1;
+}
+
+.ls-btn-name {
+  font-weight: 700;
+}
+
+.ls-btn-native {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.ls-btn-script {
+  font-size: 0.7rem;
+  opacity: 0.5;
+}
+
+.ls-btn-arrow {
+  font-size: 16px;
+  opacity: 0.5;
+}
+
+/* ===== DIVIDER ===== */
+.ls-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  margin-bottom: 14px;
+}
+
+.ls-divider-line {
+  flex: 1;
+  height: 1px;
+  background: #eee;
+}
+
+.ls-divider-text {
+  font-size: 0.7rem;
+  color: #999;
+}
+
+/* ===== OTHER BUTTON ===== */
+.ls-other-toggle {
+  margin: 0 20px;
+  padding: 12px 14px;
+
+  border-radius: 12px;
+  border: 1px dashed #ccc;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.ls-other-toggle:hover {
+  background: #f5f5f5;
+}
+
+.ls-other-toggle.open {
+  border-color: #2e7d32;
+}
+
+/* ===== PANEL ===== */
+.ls-other-panel {
+  margin: 0 20px;
+  margin-top: 6px;
+
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  overflow: hidden;
+
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== SEARCH ===== */
+.ls-search-wrap {
+  padding: 10px;
+  position: relative;
+}
+
+.ls-search {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+/* ===== GRID ===== */
+.ls-lang-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+
+  padding: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.ls-lang-item {
+  padding: 10px;
+  border-radius: 10px;
+
+  border: 1px solid #eee;
+  background: #fff;
+
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.ls-lang-item:hover {
+  background: #f0f8f1;
+  border-color: #2e7d32;
+}
+
+.ls-lang-item-name {
+  font-size: 0.75rem;
+  color: #777;
+}
+
+.ls-lang-item-native {
+  font-weight: 700;
+}
+
+.ls-lang-item-greeting {
+  font-size: 0.7rem;
+  color: #aaa;
+}
+
+/* ===== FOOTER ===== */
+.ls-footer-note {
+  text-align: center;
+  padding: 16px;
+  font-size: 0.7rem;
+  color: #777;
+}
