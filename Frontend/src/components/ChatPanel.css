@@ -280,3 +280,41 @@
   transform: scale(1.07);
   box-shadow: 0 6px 20px rgba(46, 125, 50, 0.5);
 }
+
+/* ── Mic button in chat panel ── */
+.cp-mic-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(76, 175, 80, 0.22);
+  color: rgba(232, 245, 233, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.cp-mic-btn:hover {
+  background: rgba(255, 255, 255, 0.13);
+  color: #e8f5e9;
+  border-color: rgba(76, 175, 80, 0.4);
+}
+
+.cp-mic-btn:active {
+  transform: scale(0.94);
+}
+
+.cp-mic-active {
+  background: linear-gradient(135deg, #c62828, #ef5350) !important;
+  color: white !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 14px rgba(239, 83, 80, 0.35);
+  animation: cp-mic-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes cp-mic-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.08); }
+}

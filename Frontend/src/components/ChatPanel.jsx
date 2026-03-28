@@ -14,12 +14,15 @@ const MOCK_RESPONSES = [
 
 // Called by parent when voice query needs a bot reply.
 // Parent (App.jsx) manages the `messages` array.
-export default function ChatPanel({ isOpen, onClose, messages, setMessages, isProcessing }) {
-  const [input, setInput]         = useState('');
+export default function ChatPanel({
+  isOpen, onClose, messages, setMessages, isProcessing,
+  isListening, startListening, stopListening
+}) {
+  const [input, setInput] = useState('');
   const [localTyping, setLocalTyping] = useState(false);
 
   const messagesEndRef = useRef(null);
-  const inputRef       = useRef(null);
+  const inputRef = useRef(null);
 
   // Scroll to bottom whenever messages change
   useEffect(() => {
@@ -134,6 +137,27 @@ export default function ChatPanel({ isOpen, onClose, messages, setMessages, isPr
             onKeyDown={handleKeyDown}
             aria-label="Chat input"
           />
+
+          {/* Voice input button inside chat panel */}
+          <button
+            className={`cp-mic-btn${isListening ? ' cp-mic-active' : ''}`}
+            onClick={() => isListening ? stopListening() : startListening()}
+            aria-label={isListening ? 'Stop recording' : 'Start recording'}
+          >
+            {isListening ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="5" y="5" width="14" height="14" rx="2" />
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="2" width="6" height="12" rx="3" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="22" />
+                <line x1="8" y1="22" x2="16" y2="22" />
+              </svg>
+            )}
+          </button>
+
           <button
             className="cp-send"
             onClick={handleSend}

@@ -1,0 +1,458 @@
+/* ══════════════════════════════════════════
+   AUTH OVERLAY + CARD
+══════════════════════════════════════════ */
+.auth-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 8000;
+    background: rgba(10, 20, 10, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: auth-fade-in 0.3s ease both;
+}
+
+@media (min-height: 600px) {
+    .auth-overlay {
+        align-items: center;
+    }
+}
+
+@keyframes auth-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.auth-card {
+    background: var(--surface);
+    border-radius: 28px 28px 0 0;
+    padding: 32px 24px 48px;
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    animation: auth-slide-up 0.38s cubic-bezier(0.165, 0.84, 0.44, 1) both;
+    box-shadow: 0 -8px 48px rgba(0, 0, 0, 0.18);
+}
+
+@media (min-height: 600px) {
+    .auth-card {
+        border-radius: 28px;
+        max-width: 380px;
+        padding: 36px 28px 32px;
+    }
+}
+
+@keyframes auth-slide-up {
+    from {
+        transform: translateY(40px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.auth-brand {
+    font-family: var(--font);
+    font-size: 1.7rem;
+    letter-spacing: -0.03em;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.auth-tagline {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ink-60);
+    letter-spacing: 0.04em;
+    text-align: center;
+    margin-top: -10px;
+}
+
+/* Mode toggle */
+.auth-toggle {
+    display: flex;
+    background: var(--green-soft);
+    border-radius: 14px;
+    padding: 4px;
+    width: 100%;
+    gap: 4px;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 9px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--ink-60);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    font-family: var(--font);
+}
+
+.auth-tab--active {
+    background: var(--surface);
+    color: var(--green-mid);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* Toast */
+.auth-toast {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    animation: auth-fade-in 0.25s ease;
+}
+
+.auth-toast--error {
+    background: rgba(229, 57, 53, 0.09);
+    color: #c62828;
+    border: 1px solid rgba(229, 57, 53, 0.2);
+}
+
+.auth-toast--success {
+    background: rgba(46, 125, 50, 0.09);
+    color: var(--green-mid);
+    border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
+/* Form */
+.auth-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.auth-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.auth-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--ink-60);
+    letter-spacing: 0.02em;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 13px 16px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(0, 0, 0, 0.1);
+    background: #f9f9f7;
+    font-size: 0.95rem;
+    font-family: var(--font);
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-input:focus {
+    border-color: var(--green-mid);
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.12);
+    background: var(--surface);
+}
+
+.auth-input:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.auth-hint {
+    font-size: 0.72rem;
+    color: var(--ink-35);
+    text-align: center;
+    line-height: 1.5;
+}
+
+.auth-submit {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--green-mid), var(--green-deep));
+    color: #fff;
+    font-size: 0.97rem;
+    font-weight: 700;
+    font-family: var(--font);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 20px rgba(27, 94, 32, 0.3);
+    transition: all 0.2s ease;
+    letter-spacing: 0.01em;
+    margin-top: 4px;
+}
+
+.auth-submit:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 28px rgba(27, 94, 32, 0.4);
+}
+
+.auth-submit:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.auth-submit:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Spinner inside button */
+.auth-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2.5px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: auth-spin 0.7s linear infinite;
+}
+
+@keyframes auth-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.auth-switch {
+    font-size: 0.8rem;
+    color: var(--ink-60);
+    text-align: center;
+}
+
+.auth-switch-btn {
+    background: none;
+    border: none;
+    color: var(--green-mid);
+    font-weight: 700;
+    font-size: inherit;
+    cursor: pointer;
+    font-family: var(--font);
+    text-decoration: underline;
+    padding: 0 2px;
+}
+
+/* ══════════════════════════════════════════
+   HAMBURGER MENU DRAWER
+══════════════════════════════════════════ */
+.hm-wrap {
+    position: relative;
+}
+
+.hm-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100dvh;
+    width: min(300px, 82vw);
+    z-index: 6000;
+    animation: hm-slide-in 0.3s cubic-bezier(0.165, 0.84, 0.44, 1) both;
+}
+
+@keyframes hm-slide-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.hm-drawer-inner {
+    height: 100%;
+    background: var(--surface);
+    box-shadow: -8px 0 48px rgba(0, 0, 0, 0.15);
+    padding: 64px 20px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+}
+
+/* Profile block */
+.hm-profile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: var(--green-soft);
+    border-radius: 16px;
+}
+
+.hm-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--green-mid), var(--green-deep));
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(46, 125, 50, 0.3);
+}
+
+.hm-username {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.2;
+}
+
+.hm-role {
+    font-size: 0.72rem;
+    color: var(--green-mid);
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+/* Auth prompt (unauthenticated) */
+.hm-auth-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px 14px;
+    background: #fdf8f0;
+    border-radius: 16px;
+    border: 1.5px dashed rgba(192, 96, 16, 0.25);
+    text-align: center;
+}
+
+.hm-auth-icon {
+    font-size: 1.8rem;
+}
+
+.hm-auth-text {
+    font-size: 0.8rem;
+    color: var(--ink-60);
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+.hm-divider {
+    height: 1px;
+    background: var(--border);
+}
+
+/* Nav links */
+.hm-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.hm-link {
+    display: block;
+    padding: 11px 14px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ink);
+    transition: background 0.18s ease;
+}
+
+.hm-link:hover {
+    background: var(--green-soft);
+    color: var(--green-mid);
+}
+
+/* Auth buttons */
+.hm-btn {
+    width: 100%;
+    padding: 13px 16px;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: var(--font);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    margin-top: auto;
+}
+
+.hm-btn--login {
+    background: linear-gradient(135deg, var(--green-mid), var(--green-deep));
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(27, 94, 32, 0.25);
+}
+
+.hm-btn--login:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 28px rgba(27, 94, 32, 0.35);
+}
+
+.hm-btn--logout {
+    background: rgba(229, 57, 53, 0.07);
+    color: #c62828;
+    border: 1.5px solid rgba(229, 57, 53, 0.2);
+}
+
+.hm-btn--logout:hover {
+    background: rgba(229, 57, 53, 0.12);
+}
+
+/* ══════════════════════════════════════════
+   AUTH GATE TOAST (shown when mic/chat blocked)
+══════════════════════════════════════════ */
+.auth-gate-toast {
+    position: fixed;
+    bottom: 108px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 7000;
+    background: var(--ink);
+    color: #fff;
+    padding: 11px 20px;
+    border-radius: 40px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+    animation: gate-toast-in 0.3s cubic-bezier(0.165, 0.84, 0.44, 1) both;
+    pointer-events: none;
+    letter-spacing: 0.01em;
+}
+
+@keyframes gate-toast-in {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}

@@ -17,11 +17,21 @@ export function AppProvider({ children }) {
   const setLanguage = (lang) => {
     console.log("SETTING LANGUAGE:", lang); // debug
     setLanguageState(lang);
+    
+    // ─── Set Google Translate Cookie ───
+    const langCode = lang?.code || 'en';
+    const cookieVal = `/en/${langCode}`;
+    document.cookie = `googtrans=${cookieVal}; path=/`;
+    document.cookie = `googtrans=${cookieVal}; domain=${window.location.hostname}; path=/`;
+
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(lang));
     } catch (e) {
       console.error("LocalStorage error:", e);
     }
+
+    // Refresh to apply Google Translate to the whole DOM
+    window.location.reload();
   };
 
   const resetLanguage = () => {
@@ -38,6 +48,11 @@ export function AppProvider({ children }) {
         setLanguage,
         resetLanguage,
         hasChosen,
+        // Helper to get Speech API code (hi -> hi-IN)
+        getSpeechCode: (code) => {
+          if (!code || code === 'en') return 'en-IN';
+          return `${code}-IN`;
+        }
       }}
     >
       {children}
