@@ -5,16 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5fd3a653-ac54-4db0-9419-bd707710f00f" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/backend/app/agents/online_farmer_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/agents/online_farmer_agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/api/v1/router.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/api/v1/router.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/data/weather_cache.sqlite" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/data/weather_cache.sqlite" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/tools/crop_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/tools/crop_tool.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/tools/fertilizer_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/tools/fertilizer_tool.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/tools/rain_fall.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/tools/rain_fall.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/tools/soil_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/tools/soil_tool.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/tools/weather_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/tools/weather_tool.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/tools/yield_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/tools/yield_tool.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/backend/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/data/weather_cache.sqlite" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,12 +30,12 @@
     &quot;assignee&quot;: &quot;Omfalcon&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/Omfalcon/krishi-dristi-agent.git",
-    "accountId": "0e885454-c3fc-494c-acea-8ac8ada17af7"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Omfalcon/krishi-dristi-agent.git&quot;,
+    &quot;accountId&quot;: &quot;0e885454-c3fc-494c-acea-8ac8ada17af7&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
 }</component>
@@ -65,7 +58,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "rag__om",
+    "git-widget-placeholder": "main",
     "junie.onboarding.icon.badge.shown": "true",
     "last_opened_file_path": "C:/Users/hp/PycharmProjects/krishi-dristi-agent",
     "node.js.detected.package.eslint": "true",
@@ -95,6 +88,7 @@
       <workItem from="1774549416499" duration="5131000" />
       <workItem from="1774558824895" duration="13745000" />
       <workItem from="1774649158742" duration="21847000" />
+      <workItem from="1774713330490" duration="4918000" />
     </task>
     <servers />
   </component>

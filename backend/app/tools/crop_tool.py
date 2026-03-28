@@ -4,8 +4,9 @@ from pydantic import BaseModel
 from langchain.tools import BaseTool
 from pathlib import Path
 from app.models.loader import predict_crop
-from app.core.user_context import get_active_location, get_current_user, set_user_crop
+from app.core.user_context import get_active_location, get_active_state, get_current_user, set_user_crop
 from app.services.weather_service import get_weather_data
+from app.services.npk_ph_level import get_soil_data_for_state
 
 class EmptyInput(BaseModel):
     pass
@@ -30,10 +31,16 @@ class CropRecommendationInternalTool(BaseTool):
             hum  = weather.get("main", {}).get("humidity", 60.0)
             rain = weather.get("rain", {}).get("1h", weather.get("rain", {}).get("3h", 50.0))
 
-            # Soil NPK and pH — these come from your crop prediction model defaults
-            # They are good average values; can later be replaced with a soil API
-            n, p, k = 90, 42, 43
-            ph = 6.5
+            # Fetch dynamic NPK and pH based on user state
+            state = get_active_state()
+            soil_data = get_soil_data_for_state(state) if state else None
+            
+            if soil_data:
+                n, p, k = soil_data["N"], soil_data["P"], soil_data["K"]
+                ph = soil_data["pH"] if soil_data["pH"] is not None else 6.5
+            else:
+                n, p, k = 90, 42, 43
+                ph = 6.5
 
             prediction, confidence = predict_crop(
                 model_path, n, p, k,

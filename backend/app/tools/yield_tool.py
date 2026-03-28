@@ -5,9 +5,10 @@ from langchain.tools import BaseTool
 from app.models.loader import predict_yield_simple, predict_crop
 from app.services.weather_service import get_weather_data
 from app.core.user_context import (
-    get_active_location, get_active_crop,
+    get_active_location, get_active_state, get_active_crop,
     get_current_user, set_user_crop
 )
+from app.services.npk_ph_level import get_soil_data_for_state
 
 
 class YieldInput(BaseModel):
@@ -45,7 +46,14 @@ class YieldPredictionInternalTool(BaseTool):
                 temp = weather.get("main", {}).get("temp", 25.0)
                 hum  = weather.get("main", {}).get("humidity", 60.0)
                 rain = weather.get("rain", {}).get("1h", weather.get("rain", {}).get("3h", 50.0))
-                n, p, k, ph = 90, 42, 43, 6.5
+                
+                state = get_active_state()
+                soil_data = get_soil_data_for_state(state) if state else None
+                if soil_data:
+                    n, p, k = soil_data["N"], soil_data["P"], soil_data["K"]
+                    ph = soil_data["pH"] if soil_data["pH"] is not None else 6.5
+                else:
+                    n, p, k, ph = 90, 42, 43, 6.5
 
                 predicted, _ = predict_crop(crop_model, n, p, k, temp, hum, ph, rain)
                 resolved_crop = predicted
