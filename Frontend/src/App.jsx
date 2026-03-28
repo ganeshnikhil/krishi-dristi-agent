@@ -410,6 +410,17 @@ function getTranscriptLines(text) {
 function formatTimer(secs) {
   return `${Math.floor(secs / 60).toString().padStart(2, '0')}:${(secs % 60).toString().padStart(2, '0')}`
 }
+function getWindDirection(deg) {
+  if (deg >= 337.5 || deg < 22.5) return 'N'
+  if (deg >= 22.5 && deg < 67.5) return 'NE'
+  if (deg >= 67.5 && deg < 112.5) return 'E'
+  if (deg >= 112.5 && deg < 157.5) return 'SE'
+  if (deg >= 157.5 && deg < 202.5) return 'S'
+  if (deg >= 202.5 && deg < 247.5) return 'SW'
+  if (deg >= 247.5 && deg < 292.5) return 'W'
+  if (deg >= 292.5 && deg < 337.5) return 'NW'
+  return ''
+}
 
 /* ═══════════════════════════════════ APP ═══════════════════════════════════ */
 export default function App() {
@@ -429,13 +440,16 @@ export default function App() {
   const [messages, setMessages] = useState([
     { id: 1, type: 'bot', text: 'Namaste! 🌾 I am KrishiBot. Speak or type to ask anything about your farm.', time: new Date() },
   ])
+  const [locationText, setLocationText] = useState('Dehradun, IN')
+  const [isUpdatingLocation, setIsUpdatingLocation] = useState(false)
+  const [weatherData, setWeatherData] = useState(null)
 
   const sliderRef = useRef(null)
   const isUserScrolling = useRef(false)
   const scrollTimeout = useRef(null)
 
   const { hasChosen, resetLanguage } = useApp()
-  const { isAuthenticated, setPendingAction: ctxSetPending } = useAuth()
+  const { isAuthenticated, token } = useAuth()
 
   const { transcript, isListening, startListening, stopListening, resetTranscript } =
     useSpeechRecognition('en-IN')
@@ -495,13 +509,27 @@ export default function App() {
   const handleVoiceQuery = useCallback(async (text) => {
     setMessages(p => [...p, { id: Date.now(), type: 'user', text, time: new Date() }])
     setIsProcessing(true)
-    await new Promise(r => setTimeout(r, 1000 + Math.random() * 600))
-    const reply = MOCK_RESPONSES[Math.floor(Math.random() * MOCK_RESPONSES.length)]
-    setMessages(p => [...p, { id: Date.now() + 1, type: 'bot', text: reply, time: new Date() }])
-    setIsProcessing(false)
-    speakText(reply, 'en-IN')
-    resetTranscript()
-  }, [resetTranscript])
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const res = await fetch(`${apiUrl}/api/v1/chat/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ message: text }),
+      })
+      const data = await res.json()
+      const reply = res.ok ? data.reply : (data.detail || 'Something went wrong.')
+      setMessages(p => [...p, { id: Date.now() + 1, type: 'bot', text: reply, time: new Date() }])
+      speakText(reply, 'en-IN')
+    } catch {
+      setMessages(p => [...p, { id: Date.now() + 1, type: 'bot', text: '⚠️ Network error. Please try again.', time: new Date() }])
+    } finally {
+      setIsProcessing(false)
+      resetTranscript()
+    }
+  }, [resetTranscript, token])
 
   const handleScroll = () => {
     if (!sliderRef.current) return
@@ -528,6 +556,77 @@ export default function App() {
   const handleCloseVoice = () => {
     stopListening(); setIsChatPanelOpen(false); setIsChatOpen(false)
   }
+
+  const handleLocationClick = useCallback(() => {
+    if (!isAuthenticated) {
+      guardedAction('location', () => {})
+      return
+    }
+
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return
+    }
+
+    setIsUpdatingLocation(true)
+    setLocationText('Locating...')
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const latitude = parseFloat(position.coords.latitude.toFixed(6))
+        const longitude = parseFloat(position.coords.longitude.toFixed(6))
+        try {
+          // You just changed your backend endpoint in endpoints/user.py to prefix="/user"
+          // but if it's included in router.py as api_router.include_router(user_router) 
+          // then the path is /api/v1/user/location
+          // Let's rely on standard v1 route setup
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+          const res = await fetch(`${apiUrl}/api/v1/user/location`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ lat: latitude, lon: longitude }),
+          })
+
+          if (res.ok) {
+            setLocationText('Location Synced')
+            try {
+              const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+              const geoData = await geoRes.json()
+              const city = geoData.address.city || geoData.address.town || geoData.address.village || geoData.address.county || 'Synced'
+              const state = geoData.address.state ? geoData.address.state.substring(0, 2).toUpperCase() : 'IN'
+              setLocationText(`${city}, ${state}`)
+            } catch (e) {
+              // Ignore reverse geocode failures
+            }
+            try {
+              const owmKey = import.meta.env.VITE_OPENWEATHER_API_KEY;
+              if (owmKey) {
+                const wRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${owmKey}&units=metric`);
+                if (wRes.ok) {
+                  const wData = await wRes.json();
+                  setWeatherData(wData);
+                }
+              }
+            } catch (err) {}
+          } else {
+            setLocationText('Dehradun, IN')
+            alert('Failed to update location on server.')
+          }
+        } catch {
+          setLocationText('Dehradun, IN')
+        } finally {
+          setIsUpdatingLocation(false)
+        }
+      },
+      (error) => {
+        setLocationText('Dehradun, IN')
+        setIsUpdatingLocation(false)
+      }
+    )
+  }, [isAuthenticated, token, guardedAction])
 
   return (
     <>
@@ -556,8 +655,13 @@ export default function App() {
           </div>
         </div>
         <div className="navbar-center">
-          <div className="location-chip">
-            <span className="location-dot" /><span>Dehradun, IN</span>
+          <div 
+            className="location-chip" 
+            onClick={handleLocationClick}
+            style={{ cursor: isUpdatingLocation ? 'wait' : 'pointer', opacity: isUpdatingLocation ? 0.7 : 1 }}
+            title="Update Location"
+          >
+            <span className="location-dot" /><span>{locationText}</span>
           </div>
         </div>
         <button className="nav-icon-btn language-btn" onClick={resetLanguage} title="Change Language">
@@ -590,9 +694,19 @@ export default function App() {
             <img src={clouds} alt="" className="clouds-img" aria-hidden="true" />
             <img src={soilNormal} alt="" className="soil-img" aria-hidden="true" />
             <div className="hero-center">
-              <div className="hero-weather-badge"><span className="hero-weather-icon">🌧️</span><span>Light Rain</span></div>
-              <div className="hero-temp">24°<span className="hero-temp-unit">C</span></div>
-              <div className="hero-desc">Continuous showers · Feels like 21°C</div>
+              <div className="hero-weather-badge">
+                <span className="hero-weather-icon">🌧️</span>
+                <span>{weatherData?.weather?.[0]?.main || 'Light Rain'}</span>
+              </div>
+              <div className="hero-temp">
+                {weatherData ? Math.round(weatherData.main.temp) : 24}°
+                <span className="hero-temp-unit">C</span>
+              </div>
+              <div className="hero-desc">
+                {weatherData?.weather?.[0]?.description 
+                  ? weatherData.weather[0].description.charAt(0).toUpperCase() + weatherData.weather[0].description.slice(1)
+                  : 'Continuous showers'} · Feels like {weatherData ? Math.round(weatherData.main.feels_like) : 21}°C
+              </div>
             </div>
             <div className="hero-widget weather-widget">
               <div className="widget-icon">
@@ -600,7 +714,10 @@ export default function App() {
                   <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
                 </svg>
               </div>
-              <div className="widget-info"><div className="widget-val">82%</div><div className="widget-label">Humidity</div></div>
+              <div className="widget-info">
+                <div className="widget-val">{weatherData ? weatherData.main.humidity : 82}%</div>
+                <div className="widget-label">Humidity</div>
+              </div>
             </div>
             <div className="hero-widget soil-widget">
               <div className="widget-icon">
@@ -616,7 +733,14 @@ export default function App() {
                   <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />
                 </svg>
               </div>
-              <div className="widget-info"><div className="widget-val">12 km/h</div><div className="widget-label">NE Wind</div></div>
+              <div className="widget-info">
+                <div className="widget-val">
+                  {weatherData?.wind ? Math.round(weatherData.wind.speed * 3.6) : 12} km/h
+                </div>
+                <div className="widget-label">
+                  {weatherData?.wind ? getWindDirection(weatherData.wind.deg) : 'NE'} Wind
+                </div>
+              </div>
             </div>
           </div>
         </section>
