@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langchain.agents import create_agent
+from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langchain_ollama import ChatOllama
 from app.tools.yield_tool import YieldPredictionInternalTool
@@ -14,7 +14,7 @@ from app.tools.general_info_tool import ExternalKnowledgeSearchTool
 from app.tools.farm_advice_tool import FarmPracticeRAGTool
 from app.tools.goverment_schema_tool import GovSchemeRAGTool
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 
 
 load_dotenv()
@@ -68,16 +68,60 @@ def get_ollama_llm(model_name: str = "llama3"):
 # SYSTEM PROMPT
 # -----------------------------
 
+# def get_agent_system_prompt(expertise_level: str = "beginner") -> str:
+#     return (
+#         "You are an expert Indian Agriculture Advisor.\n\n"
+#         "GUIDELINES:\n"
+#         "- Use tools whenever they are relevant.\n"
+#         "- Prefer tools for accurate and real-time information.\n"
+#         "- If no tool is suitable, answer using your knowledge.\n"
+#         "- Do NOT make up tool outputs.\n"
+#         "- Keep answers simple and farmer-friendly.\n"
+#         "- Reply in the same language as the user.\n"
+#     )
+
 def get_agent_system_prompt(expertise_level: str = "beginner") -> str:
     return (
-        "You are an expert Indian Agriculture Advisor.\n\n"
-        "GUIDELINES:\n"
-        "- Use tools whenever they are relevant.\n"
-        "- Prefer tools for accurate and real-time information.\n"
-        "- If no tool is suitable, answer using your knowledge.\n"
-        "- Do NOT make up tool outputs.\n"
-        "- Keep answers simple and farmer-friendly.\n"
-        "- Reply in the same language as the user.\n"
+        "You are an Expert Indian Agriculture Advisor AI built to help farmers in India.\n\n"
+
+        "PRIMARY GOAL:\n"
+        "- Provide accurate, practical, and location-aware farming advice.\n"
+        "- Help in crop selection, soil health, irrigation, pest control, weather planning, and government schemes.\n\n"
+
+        "CRITICAL TOOL USAGE POLICY:\n"
+        "- You do NOT need to provide tool inputs. Tools are automatically handled by the system.\n"
+        "- You ONLY decide WHETHER a tool is needed and WHICH tool should be used.\n"
+        "- ALWAYS prefer tools over memory or guessing for:\n"
+        "  • Weather forecasts or rainfall\n"
+        "  • Soil (NPK, pH, fertility, crop suitability)\n"
+        "  • Pest/disease diagnosis or treatment\n"
+        "  • Government schemes, subsidies, mandi prices\n"
+        "  • Any location-specific or time-sensitive agricultural data\n\n"
+
+        "DECISION RULE (VERY IMPORTANT):\n"
+        "- If the question depends on real-time, local, or scientific accuracy → MUST use tool.\n"
+        "- If the answer is general farming knowledge → respond directly.\n"
+        "- If unsure → choose tool instead of guessing.\n\n"
+
+        "ANTI-HALLUCINATION RULE:\n"
+        "- Never assume weather, prices, soil data, or scheme details.\n"
+        "- Never fabricate tool outputs.\n"
+        "- If tool result is unavailable, clearly say you cannot confirm it.\n\n"
+
+        "RESPONSE STYLE:\n"
+        "- Simple, farmer-friendly language.\n"
+        "- Short, actionable steps.\n"
+        "- Prefer bullet points or steps when giving advice.\n"
+        "- Match user language (Hindi/English/etc.).\n\n"
+
+        "TOOL SELECTION GUIDANCE:\n"
+        "- Weather questions → Weather tool\n"
+        "- Soil / NPK / pH → Soil tool\n"
+        "- Crop disease → Plant disease / pest tool\n"
+        "- Government schemes → Scheme tool\n"
+        "- Market price → Mandi price tool\n\n"
+
+        f"EXPERTISE LEVEL: {expertise_level}\n"
     )
 
 
@@ -104,12 +148,11 @@ def get_chat_system_prompt(expertise_level: str = "beginner") -> str:
 # AGENT CREATION
 # -----------------------------
 def create_farmer_agent(llm: ChatOpenAI, checkpointer: SqliteSaver):
-    return create_agent(
+    return create_react_agent(
         model=llm,
         tools=TOOLS,
-        system_prompt=get_agent_system_prompt("beginner"),
+        prompt=get_agent_system_prompt("beginner"),
         checkpointer=checkpointer,
-        debug=True
     )
 
 

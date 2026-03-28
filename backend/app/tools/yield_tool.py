@@ -1,91 +1,108 @@
-
-# from langchain.tools import tool
-# from app.models.loader import predict_yield_simple
-
-
-# @tool
-# def get_crop_prediction() -> str:
-#     """
-#     Retrieve internal environmental data and predict the most suitable crop
-#     for the current conditions without requiring user input.
-#     """
-#     current_temp = 28.4   # Celsius
-#     current_rain = 120.5  # mm
-#     crop_name = "Rice"
-#     current_pesticide = 1.5
-#     weights_path = "app/models/india_crop_yield_model.pkl"
-#     try:
-#         prediction = predict_yield_simple(
-#             weights_path,
-#             crop_name,
-#             current_rain,
-#             current_pesticide,
-#             current_temp
-#         )
-
-#         return (
-#             f"Analysis complete: based on a temperature of {current_temp}°C "
-#             f"and rainfall of {current_rain} mm, the best crop to grow is: {prediction}"
-#         )
-
-#     except Exception as e:
-#         return f"An unexpected error occurred: {str(e)}"
-
-
-from typing import Type
-from pydantic import BaseModel
+from typing import Type, Optional
+from pydantic import BaseModel, Field
 from pathlib import Path
-
 from langchain.tools import BaseTool
-from app.models.loader import predict_yield_simple
+from app.models.loader import predict_yield_simple, predict_crop
+from app.services.weather_service import get_weather_data
+from app.core.user_context import (
+    get_active_location, get_active_crop,
+    get_current_user, set_user_crop
+)
 
 
-# ✅ Empty schema (since no input is required)
-class EmptyInput(BaseModel):
-    pass
+class YieldInput(BaseModel):
+    crop_name: Optional[str] = Field(
+        default=None,
+        description="The crop name (e.g., 'Rice', 'Wheat'). Leave empty to auto-detect from DB or prediction."
+    )
 
 
 class YieldPredictionInternalTool(BaseTool):
     name: str = "yield_prediction_internal"
     description: str = (
-        "Predicts the most suitable crop using internal environmental data. "
-        "Does NOT require any user input. "
-        "Use this when crop recommendation is needed based on current conditions."
+        "Predicts the crop yield for the farmer's GPS location using real-time weather data. "
+        "Automatically reads the farmer's last predicted crop from the database. "
+        "If no crop is in the database yet, it runs the crop prediction automatically. "
+        "Only pass 'crop_name' if the user explicitly mentions a specific crop."
     )
-    args_schema: Type[BaseModel] = EmptyInput
+    args_schema: Type[BaseModel] = YieldInput
 
-    def _run(self) -> str:
-        # ✅ Hardcoded demo values
-        current_temp = 28.4   # Celsius
-        current_rain = 120.5  # mm
-        crop_name = "Rice, paddy"
-        current_pesticide = 1.5
+    def _run(self, crop_name: Optional[str] = None) -> str:
+        lat, lon = get_active_location()
+        yield_model = str(Path(__file__).resolve().parent.parent / "models" / "india_crop_yield_model.pkl")
+        crop_model  = str(Path(__file__).resolve().parent.parent / "models" / "crop_prediction_model.pkl")
 
-        weights_path = str(Path(__file__).resolve().parent.parent / "models" / "india_crop_yield_model.pkl")
+        # ── Resolve crop ──────────────────────────────────────────────────────
+        # Priority: 1) user passed crop_name in message
+        #           2) last predicted crop saved in DB
+        #           3) auto-run crop prediction and save result
+        auto_predicted = False
+        resolved_crop  = crop_name or get_active_crop()
+
+        if not resolved_crop:
+            try:
+                weather = get_weather_data(lat, lon)
+                temp = weather.get("main", {}).get("temp", 25.0)
+                hum  = weather.get("main", {}).get("humidity", 60.0)
+                rain = weather.get("rain", {}).get("1h", weather.get("rain", {}).get("3h", 50.0))
+                n, p, k, ph = 90, 42, 43, 6.5
+
+                predicted, _ = predict_crop(crop_model, n, p, k, temp, hum, ph, rain)
+                resolved_crop = predicted
+                auto_predicted = True
+
+                user = get_current_user()
+                if user:
+                    try:
+                        set_user_crop(user, resolved_crop)
+                        print(f"[DB] ✅ Auto-saved crop '{resolved_crop}' for user '{user}'")
+                    except Exception as db_err:
+                        print(f"[DB] ⚠️ Could not save crop: {db_err}")
+
+            except Exception as crop_err:
+                return (
+                    f"❌ Could not auto-predict crop: {crop_err}\n"
+                    "Please ask 'what crop should I grow?' first, or say e.g. 'predict yield for wheat'."
+                )
 
         try:
+            weather = get_weather_data(lat, lon)
+            current_temp = weather.get("main", {}).get("temp", 28.4)
+            current_rain = weather.get("rain", {}).get("1h", weather.get("rain", {}).get("3h", 120.5))
+            current_pesticide = 1.5
+
+            # Yield model expects "Crop, paddy" style names for rice — normalize
+            crop_for_model = resolved_crop.capitalize()
+            if crop_for_model.lower() == "rice":
+                crop_for_model = "Rice, paddy"
+
             prediction = predict_yield_simple(
-                weights_path,
-                crop_name,
+                yield_model,
+                crop_for_model,
                 current_rain,
                 current_pesticide,
                 current_temp
             )
 
+            if crop_name:
+                source_note = "(as you mentioned)"
+            elif auto_predicted:
+                source_note = "(auto-predicted for your location)"
+            else:
+                source_note = "(from your saved profile)"
+
             return (
-                "🌾 Crop Prediction Result:\n"
-                f"- Crop Considered: {crop_name}\n"
+                "🌾 **Crop Yield Prediction**:\n"
+                f"📍 Location: ({lat:.4f}, {lon:.4f})\n"
+                f"- Crop: {resolved_crop.capitalize()} {source_note}\n"
                 f"- Temperature: {current_temp}°C\n"
                 f"- Rainfall: {current_rain} mm\n"
                 f"- Pesticide Level: {current_pesticide}\n\n"
-                f"👉 Recommended / Predicted Output: {prediction}"
+                f"👉 **Predicted Yield**: {prediction}"
             )
 
         except Exception as e:
-            return f"❌ Error during crop prediction: {str(e)}"
+            return f"❌ Error during yield prediction: {str(e)}"
 
     async def _arun(self, *args, **kwargs):
         raise NotImplementedError("Async not implemented")
-    
-    
-    

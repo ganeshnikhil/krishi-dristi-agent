@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌾 Krishi Dristi — Farmer Portal</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a472a 0%, #2d6a4f 50%, #1a472a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 440px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2d6a4f, #40916c);
+            color: white;
+            padding: 24px 28px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* Steps */
+        .steps {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .step-btn {
+            flex: 1;
+            padding: 12px 8px;
+            font-size: 12px;
+            text-align: center;
+            color: #adb5bd;
+            border: none;
+            background: none;
+            cursor: default;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+        }
+
+        .step-btn.active {
+            color: #2d6a4f;
+            border-bottom-color: #2d6a4f;
+            font-weight: 700;
+        }
+
+        .step-btn.done {
+            color: #40916c;
+        }
+
+        .panel {
+            display: none;
+            padding: 28px;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        /* Forms */
+        label {
+            display: block;
+            font-size: 13px;
+            color: #495057;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 14px;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: #40916c;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: #2d6a4f;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1b4332;
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        .btn-location {
+            background: #e9f5ff;
+            color: #0077c8;
+            border: 1.5px solid #0077c8;
+            margin-bottom: 12px;
+        }
+
+        .btn-location:hover {
+            background: #d0eaff;
+        }
+
+        .tab-row {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            font-weight: 600;
+            color: #868e96;
+        }
+
+        .tab-btn.active {
+            color: #2d6a4f;
+            border-bottom-color: #2d6a4f;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 14px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Chat */
+        .chat-box {
+            height: 280px;
+            overflow-y: auto;
+            border: 1.5px solid #dee2e6;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 12px;
+            background: #f8f9fa;
+        }
+
+        .msg {
+            margin-bottom: 12px;
+        }
+
+        .msg-user {
+            text-align: right;
+        }
+
+        .msg-agent {
+            text-align: left;
+        }
+
+        .bubble {
+            display: inline-block;
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 13.5px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .msg-user .bubble {
+            background: #2d6a4f;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg-agent .bubble {
+            background: white;
+            color: #212529;
+            border: 1px solid #dee2e6;
+            border-bottom-left-radius: 4px;
+        }
+
+        .msg-label {
+            font-size: 11px;
+            color: #868e96;
+            margin-bottom: 4px;
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input-row input {
+            margin-bottom: 0;
+            flex: 1;
+        }
+
+        .btn-send {
+            width: auto;
+            padding: 11px 20px;
+            flex-shrink: 0;
+        }
+
+        .user-badge {
+            display: inline-block;
+            background: #d4edda;
+            color: #155724;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .coord-display {
+            background: #f1f8f4;
+            border: 1px solid #b7dfc9;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #2d6a4f;
+            margin-bottom: 14px;
+            display: none;
+        }
+
+        .spinner {
+            display: none;
+        }
+
+        .spinner.active {
+            display: inline;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <div class="header">
+            <h1>🌾 Krishi Dristi</h1>
+            <p>AI-Powered Farmer Advisory Portal</p>
+        </div>
+
+        <!-- Step indicator -->
+        <div class="steps">
+            <button class="step-btn active" id="stepBtn1">1 · Login</button>
+            <button class="step-btn" id="stepBtn2">2 · Location</button>
+            <button class="step-btn" id="stepBtn3">3 · Chat</button>
+        </div>
+
+        <!-- ── STEP 1: Auth ─────────────────────────────────────────── -->
+        <div id="panel1" class="panel active">
+            <div class="tab-row">
+                <button class="tab-btn active" id="tabLogin" onclick="showAuthTab('login')">Login</button>
+                <button class="tab-btn" id="tabRegister" onclick="showAuthTab('register')">Register</button>
+            </div>
+
+            <div id="alert1" class="alert"></div>
+
+            <!-- Login -->
+            <div id="loginForm">
+                <label>Username</label>
+                <input id="loginUser" type="text" placeholder="e.g. ramu_farmer">
+                <label>Password</label>
+                <input id="loginPass" type="password" placeholder="Your password">
+                <button class="btn btn-primary" onclick="doLogin()">Login →</button>
+            </div>
+
+            <!-- Register (hidden) -->
+            <div id="registerForm" style="display:none">
+                <label>Choose a Username</label>
+                <input id="regUser" type="text" placeholder="e.g. ramu_farmer">
+                <label>Password</label>
+                <input id="regPass" type="password" placeholder="Min 6 characters">
+                <button class="btn btn-primary" onclick="doRegister()">Create Account</button>
+            </div>
+        </div>
+
+        <!-- ── STEP 2: Location ─────────────────────────────────────── -->
+        <div id="panel2" class="panel">
+            <div id="alert2" class="alert"></div>
+            <div id="userBadge2" class="user-badge">👤 —</div>
+            <p style="font-size:13px; color:#495057; margin-bottom:16px;">
+                Share your GPS location so the AI can give you real-time weather, rainfall, and soil data for your exact
+                farm.
+            </p>
+
+            <button class="btn btn-location" onclick="autoDetectLocation()">📍 Auto-detect My Location</button>
+
+            <div id="coordDisplay" class="coord-display"></div>
+
+            <label>Latitude</label>
+            <input id="latInput" type="number" step="any" placeholder="e.g. 18.5204">
+            <label>Longitude</label>
+            <input id="lonInput" type="number" step="any" placeholder="e.g. 73.8567">
+
+            <button class="btn btn-primary" onclick="saveLocation()">Save Location & Continue →</button>
+        </div>
+
+        <!-- ── STEP 3: Chat ─────────────────────────────────────────── -->
+        <div id="panel3" class="panel">
+            <div id="userBadge3" class="user-badge">👤 —</div>
+            <div class="chat-box" id="chatBox">
+                <div class="msg msg-agent">
+                    <div class="msg-label">🌾 Krishi AI</div>
+                    <div class="bubble">Namaste! 🙏 I'm your Krishi Advisor. Ask me anything about crops, fertilizers,
+                        weather, or government schemes!</div>
+                </div>
+            </div>
+            <div class="chat-input-row">
+                <input id="chatInput" type="text" placeholder="Ask about crops, fertilizers, weather…"
+                    onkeydown="if(event.key==='Enter') sendMessage()">
+                <button class="btn btn-primary btn-send" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = 'http://localhost:8000/api/v1';
+
+        let token = null;
+        let username = null;
+
+        // ── Helpers ──────────────────────────────────────────────────
+        function showAlert(panelNum, msg, type = 'error') {
+            const el = document.getElementById('alert' + panelNum);
+            el.className = 'alert alert-' + type;
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+        function hideAlert(panelNum) {
+            document.getElementById('alert' + panelNum).style.display = 'none';
+        }
+
+        function goToStep(n) {
+            [1, 2, 3].forEach(i => {
+                document.getElementById('panel' + i).classList.remove('active');
+                const btn = document.getElementById('stepBtn' + i);
+                btn.classList.remove('active');
+                if (i < n) btn.classList.add('done');
+            });
+            document.getElementById('panel' + n).classList.add('active');
+            document.getElementById('stepBtn' + n).classList.add('active');
+        }
+
+        function showAuthTab(tab) {
+            document.getElementById('loginForm').style.display = tab === 'login' ? '' : 'none';
+            document.getElementById('registerForm').style.display = tab === 'register' ? '' : 'none';
+            document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+            document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+            hideAlert(1);
+        }
+
+        // ── Step 1: Auth ─────────────────────────────────────────────
+        async function doLogin() {
+            const user = document.getElementById('loginUser').value.trim();
+            const pass = document.getElementById('loginPass').value;
+            if (!user || !pass) return showAlert(1, 'Please fill in all fields.');
+            hideAlert(1);
+
+            const res = await fetch(`${API}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, password: pass })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                token = data.access_token;
+                username = data.user.username;
+                document.getElementById('userBadge2').textContent = '👤 ' + username;
+                document.getElementById('userBadge3').textContent = '👤 ' + username;
+                goToStep(2);
+            } else {
+                showAlert(1, '❌ ' + data.detail);
+            }
+        }
+
+        async function doRegister() {
+            const user = document.getElementById('regUser').value.trim();
+            const pass = document.getElementById('regPass').value;
+            if (!user || !pass) return showAlert(1, 'Please fill in all fields.');
+            hideAlert(1);
+
+            const res = await fetch(`${API}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, password: pass })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                showAlert(1, `✅ Account created! Please login as "${data.username}".`, 'success');
+                showAuthTab('login');
+                document.getElementById('loginUser').value = user;
+            } else {
+                showAlert(1, '❌ ' + data.detail);
+            }
+        }
+
+        // ── Step 2: Location ─────────────────────────────────────────
+        function autoDetectLocation() {
+            if (!navigator.geolocation) {
+                return showAlert(2, 'Geolocation not supported by your browser.', 'error');
+            }
+            showAlert(2, '📡 Detecting your GPS location…', 'info');
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    const lat = pos.coords.latitude.toFixed(6);
+                    const lon = pos.coords.longitude.toFixed(6);
+                    document.getElementById('latInput').value = lat;
+                    document.getElementById('lonInput').value = lon;
+
+                    const display = document.getElementById('coordDisplay');
+                    display.textContent = `📍 Detected: ${lat}°N,  ${lon}°E`;
+                    display.style.display = 'block';
+                    hideAlert(2);
+                },
+                err => showAlert(2, '⚠️ Could not detect location. Please type manually.', 'error')
+            );
+        }
+
+        async function saveLocation() {
+            const lat = parseFloat(document.getElementById('latInput').value);
+            const lon = parseFloat(document.getElementById('lonInput').value);
+            if (isNaN(lat) || isNaN(lon)) return showAlert(2, 'Please enter valid coordinates or use auto-detect.');
+            hideAlert(2);
+
+            const res = await fetch(`${API}/user/location`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ lat, lon })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                goToStep(3);
+            } else {
+                showAlert(2, '❌ ' + (data.detail || 'Failed to save location.'));
+            }
+        }
+
+        // ── Step 3: Chat ─────────────────────────────────────────────
+        function addMessage(text, role) {
+            const box = document.getElementById('chatBox');
+            const div = document.createElement('div');
+            div.className = 'msg msg-' + role;
+            div.innerHTML = `
+            <div class="msg-label">${role === 'user' ? '👨‍🌾 You' : '🌾 Krishi AI'}</div>
+            <div class="bubble">${text.replace(/</g, '&lt;').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
+        `;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function addTyping() {
+            const box = document.getElementById('chatBox');
+            const div = document.createElement('div');
+            div.className = 'msg msg-agent';
+            div.id = 'typing';
+            div.innerHTML = `<div class="bubble" style="color:#868e96">Typing…</div>`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function removeTyping() {
+            const t = document.getElementById('typing');
+            if (t) t.remove();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            input.value = '';
+
+            addMessage(msg, 'user');
+            addTyping();
+
+            try {
+                const res = await fetch(`${API}/chat/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ message: msg })
+                });
+                const data = await res.json();
+                removeTyping();
+
+                if (res.ok) {
+                    addMessage(data.reply, 'agent');
+                } else {
+                    addMessage('❌ Error: ' + (data.detail || 'Something went wrong.'), 'agent');
+                }
+            } catch (e) {
+                removeTyping();
+                addMessage('❌ Network error. Is the backend running?', 'agent');
+            }
+        }
+    </script>
+
+</body>
+
+</html>

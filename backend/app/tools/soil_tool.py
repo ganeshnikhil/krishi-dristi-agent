@@ -1,43 +1,9 @@
-# from langchain.tools import tool
-# from app.services.soil_service import fetch_soil_data  # core service
-
-# @tool
-# def get_soil_info() -> str:
-#     """
-#     Fetch soil data for the farmer's location.
-#     Automatically provides:
-#     - dt: time of data calculation (Unix time, UTC)
-#     - t0: surface temperature in Kelvins
-#     - t10: temperature at 10 cm depth in Kelvins
-#     - moisture: soil moisture in m³/m³
-#     """
-#     try:
-#         data = fetch_soil_data()
-        
-#         dt = data.get("dt", "N/A")
-#         t0 = data.get("t0", "N/A")
-#         t10 = data.get("t10", "N/A")
-#         moisture = data.get("moisture", "N/A")
-        
-#         return (
-#             f"Soil Data:\n"
-#             f"- Time (dt, UTC): {dt}\n"
-#             f"- Surface temperature (t0, K): {t0}\n"
-#             f"- Temperature at 10cm depth (t10, K): {t10}\n"
-#             f"- Soil moisture (m³/m³): {moisture}"
-#         )
-#     except Exception as e:
-#         return f"Unable to fetch soil data. Error: {e}"
-
-
 from typing import Type
 from pydantic import BaseModel
-
 from langchain.tools import BaseTool
 from app.services.soil_service import fetch_soil_data
 
 
-# ✅ Empty schema (no input required)
 class EmptyInput(BaseModel):
     pass
 
@@ -45,7 +11,7 @@ class EmptyInput(BaseModel):
 class SoilInfoTool(BaseTool):
     name: str = "soil_data_internal"
     description: str = (
-        "Fetches soil data for the farmer's location including temperature and moisture levels. "
+        "Fetches soil data (temperature and moisture) for the farmer's registered polygon. "
         "Does NOT require user input. "
         "Use this when soil conditions are needed for farming decisions."
     )
@@ -55,17 +21,21 @@ class SoilInfoTool(BaseTool):
         try:
             data = fetch_soil_data()
 
-            dt = data.get("dt", "N/A")
-            t0 = data.get("t0", "N/A")
-            t10 = data.get("t10", "N/A")
+            dt       = data.get("dt", "N/A")
+            t0       = data.get("t0", "N/A")
+            t10      = data.get("t10", "N/A")
             moisture = data.get("moisture", "N/A")
 
+            # Convert from Kelvin to Celsius if values look like Kelvin (>200)
+            t0_c  = round(t0 - 273.15, 1)  if isinstance(t0, (int, float))  else t0
+            t10_c = round(t10 - 273.15, 1) if isinstance(t10, (int, float)) else t10
+
             return (
-                "🌱 Soil Data Analysis:\n"
+                "🌱 **Soil Data Analysis**:\n"
                 f"- Time (UTC): {dt}\n"
-                f"- Surface Temperature (t0): {t0} K\n"
-                f"- Temperature at 10cm Depth (t10): {t10} K\n"
-                f"- Soil Moisture: {moisture} m³/m³"
+                f"- Surface Temperature  : {t0_c} °C\n"
+                f"- Temperature at 10cm  : {t10_c} °C\n"
+                f"- Soil Moisture        : {moisture} m³/m³"
             )
 
         except Exception as e:
