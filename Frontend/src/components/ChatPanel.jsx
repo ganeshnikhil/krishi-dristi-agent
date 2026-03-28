@@ -7,77 +7,32 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function ChatPanel({
   isOpen, onClose, messages, setMessages, isProcessing,
-  isListening, startListening, stopListening
+  handleTextQuery, onSwitchToVoice, onSpeak
 }) {
   const [input, setInput]         = useState('');
-  const [localTyping, setLocalTyping] = useState(false);
   const [error, setError]         = useState(null);
 
   const messagesEndRef = useRef(null);
   const inputRef       = useRef(null);
 
-  const { token } = useAuth();
-
   // Scroll to bottom whenever messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isProcessing, localTyping]);
+  }, [messages, isProcessing]);
 
   // Focus input on open
   useEffect(() => {
     if (isOpen) setTimeout(() => inputRef.current?.focus(), 350);
   }, [isOpen]);
 
-  // ── Send message to real backend ────────────────────────────
-  const sendToBackend = useCallback(async (text) => {
-    setLocalTyping(true);
-    setError(null);
-
-    try {
-      const res = await fetch(`${API}/api/v1/chat/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ message: text }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.detail || 'Failed to get a response from KrishiBot.');
-      }
-
-      setMessages(prev => [
-        ...prev,
-        { id: Date.now() + 1, type: 'bot', text: data.reply, time: new Date() },
-      ]);
-    } catch (err) {
-      const errMsg = err.message || 'Network error. Please try again.';
-      setError(errMsg);
-      setMessages(prev => [
-        ...prev,
-        { id: Date.now() + 1, type: 'bot', text: `⚠️ ${errMsg}`, time: new Date() },
-      ]);
-    } finally {
-      setLocalTyping(false);
-    }
-  }, [token, setMessages]);
-
   // ── Handle typed message send ────────────────────────────────
   const handleSend = useCallback(() => {
     const text = input.trim();
-    if (!text || localTyping || isProcessing) return;
+    if (!text || isProcessing) return;
 
     setInput('');
-    setMessages(prev => [
-      ...prev,
-      { id: Date.now(), type: 'user', text, time: new Date() },
-    ]);
-
-    sendToBackend(text);
-  }, [input, localTyping, isProcessing, setMessages, sendToBackend]);
+    handleTextQuery(text);
+  }, [input, isProcessing, handleTextQuery]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
@@ -98,7 +53,7 @@ export default function ChatPanel({
       aria-modal="true"
       aria-label="KrishiBot Chat"
     >
-      <div className="cp-panel">
+      <div className="cp-panel notranslate">
 
         {/* ── Header ── */}
         <div className="cp-header">
@@ -116,7 +71,7 @@ export default function ChatPanel({
         </div>
 
         {/* ── Messages ── */}
-        <div className="cp-messages" role="log" aria-live="polite">
+        <div className="cp-messages notranslate" role="log" aria-live="polite">
           {messages.map((msg) => (
             <div key={msg.id} className={`cp-msg cp-msg--${msg.type}`}>
               {msg.type === 'bot' && (
@@ -124,13 +79,27 @@ export default function ChatPanel({
               )}
               <div className="cp-msg-body">
                 <div className="cp-msg-bubble">{msg.text}</div>
+                {msg.type === 'bot' && (
+                  <button
+                    className="cp-msg-speaker"
+                    onClick={() => onSpeak(msg.text)}
+                    aria-label="Speak message"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    </svg>
+                    <span>Listen</span>
+                  </button>
+                )}
                 <div className="cp-msg-time">{fmt(msg.time)}</div>
               </div>
             </div>
           ))}
 
           {/* Typing indicator */}
-          {(isProcessing || localTyping) && (
+          {isProcessing && (
             <div className="cp-msg cp-msg--bot">
               <div className="cp-msg-avatar" aria-hidden="true">🌾</div>
               <div className="cp-msg-body">
@@ -145,7 +114,7 @@ export default function ChatPanel({
         </div>
 
         {/* ── Input row ── */}
-        <div className="cp-input-row">
+        <div className="cp-input-row notranslate">
           <input
             ref={inputRef}
             className="cp-input"
@@ -155,33 +124,27 @@ export default function ChatPanel({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             aria-label="Chat input"
-            disabled={localTyping || isProcessing}
+            disabled={isProcessing}
           />
 
-          {/* Voice input button */}
+          {/* Voice input button — switches to Voice Overlay mode */}
           <button
-            className={`cp-mic-btn${isListening ? ' cp-mic-active' : ''}`}
-            onClick={() => isListening ? stopListening() : startListening()}
-            aria-label={isListening ? 'Stop recording' : 'Start recording'}
+            className="cp-mic-btn"
+            onClick={onSwitchToVoice}
+            aria-label="Switch to voice mode"
           >
-            {isListening ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="5" y="5" width="14" height="14" rx="2" />
-              </svg>
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="2" width="6" height="12" rx="3" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <line x1="12" y1="19" x2="12" y2="22" />
-                <line x1="8" y1="22" x2="16" y2="22" />
-              </svg>
-            )}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="2" width="6" height="12" rx="3" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="22" />
+              <line x1="8" y1="22" x2="16" y2="22" />
+            </svg>
           </button>
 
           <button
             className="cp-send"
             onClick={handleSend}
-            disabled={!input.trim() || localTyping || isProcessing}
+            disabled={!input.trim() || isProcessing}
             aria-label="Send message"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
