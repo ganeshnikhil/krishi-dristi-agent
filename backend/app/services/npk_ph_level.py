@@ -78,6 +78,25 @@ class SoilDataLookup:
         return "State not found"
 
 
+# Initialize globally for tools to use without reloading CSV every time
+try:
+    from pathlib import Path
+    _lookup_npk_path = str(Path(__file__).resolve().parent.parent / "data" / "soil_state_data.csv")
+    _global_soil_lookup = SoilDataLookup(_lookup_npk_path)
+except Exception as e:
+    _global_soil_lookup = None
+    print(f"Warning: Could not initialize SoilDataLookup: {e}")
+
+def get_soil_data_for_state(state_name: str) -> dict:
+    """Helper for tools to get NPK data cleanly."""
+    if not state_name or not _global_soil_lookup:
+        return None
+        
+    res = _global_soil_lookup.get_npk_ph(state_name)
+    if isinstance(res, dict):
+        return res
+    return None
+
 if __name__ == "__main__":
     from pathlib import Path
     lookup_npk_path = str(Path(__file__).resolve().parent.parent/ "data"/"soil_state_data.csv")

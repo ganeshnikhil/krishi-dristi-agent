@@ -9,7 +9,12 @@ using hardcoded values.
 from threading import Lock
 from typing import Optional, Tuple
 from contextvars import ContextVar
+import requests
+import logging
+
 from app.db.session import get_db
+
+logger = logging.getLogger(__name__)
 
 # Fast in-process cache so tools don't hit MongoDB on every tool call
 _cache: dict[str, dict] = {}
@@ -20,18 +25,42 @@ _lock = Lock()
 _current_user_var: ContextVar[Optional[str]] = ContextVar('current_user', default=None)
 
 
+def _get_state_from_coords(lat: float, lon: float) -> Optional[str]:
+    """Reverse geocode to find state using OpenStreetMap Nominatim API."""
+    try:
+        url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}"
+        headers = {'User-Agent': 'KrishiDristiAgent/1.0'}
+        response = requests.get(url, headers=headers, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        address = data.get("address", {})
+        # state could be under state, region, county, etc.
+        state = address.get("state") or address.get("region") or address.get("county")
+        if state:
+            logger.debug(f"Reverse geocode success: ({lat}, {lon}) -> {state}")
+        else:
+            logger.debug(f"Reverse geocode found no state for: ({lat}, {lon})")
+        return state
+    except Exception as e:
+        logger.error(f"Error reverse geocoding ({lat}, {lon}): {e}")
+        return None
+
 def set_user_location(username: str, lat: float, lon: float) -> None:
-    """Store (lat, lon) for a user in memory AND persist to MongoDB."""
+    """Store (lat, lon, and state) for a user in memory AND persist to MongoDB."""
+    state = _get_state_from_coords(lat, lon)
+    
     with _lock:
-        _cache[username] = {"lat": lat, "lon": lon}
+        _cache[username] = {"lat": lat, "lon": lon, "state": state}
+        logger.debug(f"Stored in memory cache for {username}: lat={lat}, lon={lon}, state={state}")
 
     # Persist so the data survives server restarts
     db = get_db()
     db.user_locations.update_one(
         {"username": username},
-        {"$set": {"lat": lat, "lon": lon}},
+        {"$set": {"lat": lat, "lon": lon, "state": state}},
         upsert=True,
     )
+    logger.debug(f"Stored in MongoDB for {username}: lat={lat}, lon={lon}, state={state}")
 
 
 def get_user_location(username: str) -> Optional[Tuple[float, float]]:
@@ -49,10 +78,36 @@ def get_user_location(username: str) -> Optional[Tuple[float, float]]:
     db = get_db()
     doc = db.user_locations.find_one({"username": username})
     if doc:
-        lat, lon = doc["lat"], doc["lon"]
+        lat, lon = doc.get("lat"), doc.get("lon")
+        state = doc.get("state")
         with _lock:
-            _cache[username] = {"lat": lat, "lon": lon}
+            _cache[username] = {"lat": lat, "lon": lon, "state": state}
         return lat, lon
+
+    return None
+
+def get_user_state(username: str) -> Optional[str]:
+    """
+    Return the state for the given user.
+    Checks memory first, then MongoDB.
+    Returns None if no state is found.
+    """
+    with _lock:
+        if username in _cache:
+            return _cache[username].get("state")
+            
+    # Try MongoDB
+    db = get_db()
+    doc = db.user_locations.find_one({"username": username})
+    if doc:
+        state = doc.get("state")
+        with _lock:
+            _cache.setdefault(username, {})
+            _cache[username]["state"] = state
+            if "lat" in doc and "lon" in doc:
+                _cache[username]["lat"] = doc["lat"]
+                _cache[username]["lon"] = doc["lon"]
+        return state
 
     return None
 
@@ -80,6 +135,17 @@ def get_active_location() -> Tuple[float, float]:
         if coords:
             return coords
     return DEFAULT_LAT, DEFAULT_LON
+
+
+def get_active_state() -> Optional[str]:
+    """
+    Returns the active user's state if we reverse-geocoded it,
+    otherwise None.
+    """
+    user = get_current_user()
+    if user:
+        return get_user_state(user)
+    return None
 
 
 # ── Crop persistence ─────────────────────────────────────────────────────────

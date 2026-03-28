@@ -4,8 +4,9 @@ from pathlib import Path
 from langchain.tools import BaseTool
 from app.models.loader import predict_fertilizer, predict_crop
 from app.services.weather_service import get_weather_data
+from app.services.npk_ph_level import get_soil_data_for_state
 from app.core.user_context import (
-    get_active_location, get_active_crop,
+    get_active_location, get_active_state, get_active_crop,
     get_current_user, set_user_crop
 )
 
@@ -47,7 +48,14 @@ class FertilizerPredictionTool(BaseTool):
                 temp = weather.get("main", {}).get("temp", 25.0)
                 hum  = weather.get("main", {}).get("humidity", 60.0)
                 rain = weather.get("rain", {}).get("1h", weather.get("rain", {}).get("3h", 50.0))
-                n, p, k, ph = 90, 42, 43, 6.5
+                
+                state = get_active_state()
+                soil_data = get_soil_data_for_state(state) if state else None
+                if soil_data:
+                    n, p, k = soil_data["N"], soil_data["P"], soil_data["K"]
+                    ph = soil_data["pH"] if soil_data["pH"] is not None else 6.5
+                else:
+                    n, p, k, ph = 90, 42, 43, 6.5
 
                 predicted, _ = predict_crop(crop_model, n, p, k, temp, hum, ph, rain)
                 resolved_crop = predicted
@@ -74,15 +82,22 @@ class FertilizerPredictionTool(BaseTool):
             temperature = weather.get("main", {}).get("temp", 30.0)
             humidity    = weather.get("main", {}).get("humidity", 60.0)
 
+            state = get_active_state()
+            soil_data = get_soil_data_for_state(state) if state else None
+            
+            n_val = soil_data["N"] if soil_data else 22
+            p_val = soil_data["P"] if soil_data else 21
+            k_val = soil_data["K"] if soil_data else 0
+
             sample_input = {
                 "Temperature":  temperature,
                 "Humidity":     humidity,
                 "Moisture":     42.0,
                 "Soil Type":    "Sandy",
                 "Crop Type":    resolved_crop.capitalize(),
-                "Nitrogen":     22,
-                "Potassium":    0,
-                "Phosphorous":  21,
+                "Nitrogen":     n_val,
+                "Potassium":    k_val,
+                "Phosphorous":  p_val,
             }
 
             prediction = predict_fertilizer(fertilizer_model, sample_input)
