@@ -98,8 +98,8 @@ def download_images():
 if __name__ == "__main__":
     setup_folders()
     process_table_data()
-    download_images()
-    print("\n🚀 Tasks complete.")
+    # download_images()
+    # print("\n🚀 Tasks complete.")
     
     
     

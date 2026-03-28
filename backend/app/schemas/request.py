@@ -6,5 +6,9 @@ class AgentRequest(BaseModel):
     user_id: str
     language: Optional[str] = "en"
     mode: Optional[str] = "auto"   # auto | tool | chat
-    
+
+
+class DisasterRequest(BaseModel):
+    lat: float
+    lng: float
     

@@ -35,7 +35,7 @@ from pathlib import Path
 
 from langchain.tools import BaseTool
 from app.models.loader import predict_fertilizer
-
+from app.services.soil_type import get_soil_type
 
 # ✅ Empty schema (no user input required)
 class EmptyInput(BaseModel):
@@ -50,14 +50,16 @@ class FertilizerPredictionTool(BaseTool):
         "Does NOT require user input."
     )
     args_schema: Type[BaseModel] = EmptyInput
-
+    
     def _run(self) -> str:
         # ✅ Hardcoded demo data
+        lat = 28.6139
+        lon = 77.2090
         sample_input = {
             "Temperature": 30.0,
             "Humidity": 60.0,
             "Moisture": 42.0,
-            "Soil Type": "Sandy",
+            "Soil Type": get_soil_type(lat , lon),
             "Crop Type": "Maize",
             "Nitrogen": 22,
             "Potassium": 0,

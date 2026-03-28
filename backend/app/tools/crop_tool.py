@@ -4,6 +4,9 @@ from pydantic import BaseModel
 from langchain.tools import BaseTool
 from pathlib import Path
 from app.models.loader import predict_crop  # ✅ Using your requested import
+from app.services.npk_ph_level import SoilDataLookup
+from pathlib import Path
+
 
 # ✅ Empty schema (matches your internal data pattern)
 class EmptyInput(BaseModel):
@@ -18,11 +21,13 @@ class CropRecommendationInternalTool(BaseTool):
         "Use this for real-time soil and climate-based crop suggestions."
     )
     args_schema: Type[BaseModel] = EmptyInput
-
     def _run(self) -> str:
         # ✅ Internal Sensor/Demo values
         # These represent the 7 features your Random Forest model expects
-        n, p, k = 90, 42, 43
+        state_name = "orissa"
+        lookup_npk_path = str(Path(__file__).resolve().parent.parent/ "data"/"soil_state_data.csv")
+        data = SoilDataLookup(lookup_npk_path).get_npk_ph(state_name)
+        n , p , k , ph = data.get("N",90),data.get("P",42),data.get("K",4),data.get("pH",43)
         temp = 20.8
         hum = 82.0
         ph = 6.5
@@ -35,12 +40,14 @@ class CropRecommendationInternalTool(BaseTool):
             # ✅ Using your specific loader function
             # This function now returns the label (e.g., 'rice')
             # and the confidence score (float)
+            state = ""
+            
             prediction, confidence = predict_crop(
                 model_path,
                 n, p, k, 
                 temp, hum, ph, rain
             )
-
+            
             return (
                 "🌱 **Crop Recommendation Analysis**:\n"
                 "---------------------------------\n"
