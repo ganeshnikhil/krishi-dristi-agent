@@ -1,5 +1,8 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints.auth import router as auth_router
+from app.api.v1.endpoints import agent
+from app.api.v1.endpoints import disaster
+
 from app.api.v1.endpoints.user import router as user_router
 from app.api.v1.endpoints.chat import router as chat_router
 
@@ -8,3 +11,4 @@ api_router.include_router(auth_router)
 api_router.include_router(user_router)
 api_router.include_router(chat_router)
 
+api_router.include_router(disaster.router, prefix="/disaster", tags=["Disaster"])

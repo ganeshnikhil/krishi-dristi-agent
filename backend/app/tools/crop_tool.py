@@ -19,7 +19,6 @@ class CropRecommendationInternalTool(BaseTool):
         "Use this for real-time soil and climate-based crop suggestions."
     )
     args_schema: Type[BaseModel] = EmptyInput
-
     def _run(self) -> str:
         lat, lon = get_active_location()
         model_path = str(Path(__file__).resolve().parent.parent / "models" / "crop_prediction_model.pkl")
