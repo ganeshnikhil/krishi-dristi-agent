@@ -18,27 +18,46 @@ class WeatherInfoTool(BaseTool):
     args_schema: Type[BaseModel] = EmptyInput
 
     def _run(self) -> str:
-        lat, lon = get_active_location()
-
         try:
+            lat, lon = get_active_location()
+
             data = get_weather_data(lat, lon)
 
-            temp     = data.get("main", {}).get("temp", "N/A")
-            humidity = data.get("main", {}).get("humidity", "N/A")
-            desc     = data.get("weather", [{}])[0].get("description", "N/A")
-            wind     = data.get("wind", {}).get("speed", "N/A")
-            city     = data.get("name", f"({lat:.3f}, {lon:.3f})")
-            rain_1h  = data.get("rain", {}).get("1h", 0)
+            # -----------------------------
+            # SAFETY: ensure dict
+            # -----------------------------
+            if isinstance(data, str):
+                import json
+                data = json.loads(data)
+
+            forecast = data.get("forecast", [])
+            if not forecast:
+                return "❌ No forecast data available"
+
+            today = forecast[0]
+            snapshots = today.get("snapshots", {})
+
+            morning = snapshots.get("Morning", {})
+            afternoon = snapshots.get("Afternoon", {})
+            evening = snapshots.get("Evening", {})
+
+            # Best representative values
+            temp = afternoon.get("temp_C") or morning.get("temp_C") or "N/A"
+            desc = today.get("condition", "N/A")
+            rain = today.get("chance_of_rain_pct", 0)
 
             return (
-                f"🌤️ **Weather Report** — {city}\n"
+                f"🌤️ Weather Report — {data.get('location','Unknown')}\n"
                 f"📍 Coordinates: ({lat:.4f}, {lon:.4f})\n\n"
-                f"🌡️ Temperature : {temp} °C\n"
-                f"💧 Humidity    : {humidity} %\n"
-                f"🌧️ Rain (1h)   : {rain_1h} mm\n"
-                f"💨 Wind Speed  : {wind} m/s\n"
-                f"☁️ Conditions  : {desc.capitalize()}"
+                f"🌡️ Temp (Afternoon): {temp} °C\n"
+                f"🌧️ Rain Chance     : {rain}%\n"
+                f"☁️ Condition       : {desc}\n\n"
+                f"📅 Today Snapshot:\n"
+                f"   🌅 Morning  : {morning.get('temp_C','N/A')}°C\n"
+                f"   🌞 Afternoon: {afternoon.get('temp_C','N/A')}°C\n"
+                f"   🌇 Evening  : {evening.get('temp_C','N/A')}°C"
             )
+
 
         except Exception as e:
             return f"❌ Unable to fetch weather data: {str(e)}"

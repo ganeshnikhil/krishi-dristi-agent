@@ -7,6 +7,8 @@ from app.models.loader import predict_crop
 from app.core.user_context import get_active_location, get_active_state, get_current_user, set_user_crop
 from app.services.weather_service import get_weather_data
 from app.services.npk_ph_level import get_soil_data_for_state
+import json
+
 
 class EmptyInput(BaseModel):
     pass
@@ -21,52 +23,90 @@ class CropRecommendationInternalTool(BaseTool):
     )
     args_schema: Type[BaseModel] = EmptyInput
     def _run(self) -> str:
-        lat, lon = get_active_location()
-        model_path = str(Path(__file__).resolve().parent.parent / "models" / "crop_prediction_model.pkl")
-
         try:
-            # Fetch real weather for the user's location
+            # -----------------------------
+            # 1. LOCATION
+            # -----------------------------
+            loc = get_active_location()
+            if not loc:
+                return "❌ Location not available"
+
+            lat, lon = loc
+
+            # -----------------------------
+            # 2. MODEL PATH
+            # -----------------------------
+            model_path = Path(__file__).resolve().parent.parent / "models" / "crop_prediction_model.pkl"
+
+            if not model_path.exists():
+                return "❌ Model file not found"
+
+            # -----------------------------
+            # 3. WEATHER (FORECAST FORMAT FIXED)
+            # -----------------------------
             weather = get_weather_data(lat, lon)
-            temp = weather.get("main", {}).get("temp", 25.0)
-            hum  = weather.get("main", {}).get("humidity", 60.0)
-            rain = weather.get("rain", {}).get("1h", weather.get("rain", {}).get("3h", 50.0))
 
-            # Fetch dynamic NPK and pH based on user state
+            # if API returns string → convert
+            if isinstance(weather, str):
+                weather = json.loads(weather)
+
+            forecast = weather.get("forecast", [])
+            if not forecast:
+                return "❌ No forecast data available"
+
+            today = forecast[0]
+            snapshots = today.get("snapshots", {})
+
+            # prefer afternoon (best for agriculture estimation)
+            afternoon = snapshots.get("Afternoon") or snapshots.get("Morning") or {}
+
+            temp = afternoon.get("temp_C", 25.0)
+            rain = today.get("chance_of_rain_pct", 0)
+
+            # humidity not available in your API → fallback
+            hum = 60.0
+
+            # -----------------------------
+            # 4. SOIL DATA
+            # -----------------------------
             state = get_active_state()
-            soil_data = get_soil_data_for_state(state) if state else None
-            
-            if soil_data:
-                n, p, k = soil_data["N"], soil_data["P"], soil_data["K"]
-                ph = soil_data["pH"] if soil_data["pH"] is not None else 6.5
-            else:
-                n, p, k = 90, 42, 43
-                ph = 6.5
+            soil_data = get_soil_data_for_state(state) if state else {}
 
+            n = soil_data.get("N", 90)
+            p = soil_data.get("P", 42)
+            k = soil_data.get("K", 43)
+            ph = soil_data.get("pH") or 6.5
+
+            # -----------------------------
+            # 5. PREDICTION
+            # -----------------------------
             prediction, confidence = predict_crop(
-                model_path, n, p, k,
+                str(model_path),
+                n, p, k,
                 temp, hum, ph, rain
             )
 
-            # ✅ Persist the predicted crop for this user so other tools
-            # (like fertilizer) can use it without asking again
+            # -----------------------------
+            # 6. SAVE TO USER PROFILE
+            # -----------------------------
             user = get_current_user()
             if user:
                 try:
                     set_user_crop(user, prediction)
-                    print(f"[DB] ✅ Saved crop '{prediction}' for user '{user}'")
                 except Exception as db_err:
-                    print(f"[DB] ⚠️ Failed to save crop for user '{user}': {db_err}")
-            else:
-                print("[DB] ⚠️ No active user found — crop not saved to DB")
+                    print(f"[DB] Warning: {db_err}")
 
+            # -----------------------------
+            # 7. RESPONSE
+            # -----------------------------
             return (
-                "🌱 **Crop Recommendation Analysis**:\n"
+                "🌱 Crop Recommendation Analysis\n"
                 "----------------------------------\n"
-                f"📍 **Location**: ({lat:.4f}, {lon:.4f})\n"
-                f"📍 **Soil Stats**: N:{n}, P:{p}, K:{k} | pH: {ph}\n"
-                f"🌦️ **Climate**: {temp}°C | {hum}% Humidity | {rain}mm Rain\n\n"
-                f"✅ **Suggested Crop**: {prediction.upper()}\n"
-                f"📊 **Model Confidence**: {confidence * 100:.2f}%"
+                f"📍 Location: ({lat:.4f}, {lon:.4f})\n"
+                f"🌡️ Temperature: {temp}°C\n"
+                f"💧 Rain Chance: {rain}%\n"
+                f"🌱 Soil: N:{n} P:{p} K:{k} | pH:{ph}\n\n"
+                f"🌾 Suggested Crop: {prediction.upper()}\n"
             )
 
         except Exception as e:
