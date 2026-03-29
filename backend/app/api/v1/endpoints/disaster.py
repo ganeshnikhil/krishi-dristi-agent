@@ -11,7 +11,9 @@ def get_disaster_alert(payload: DisasterRequest):
     try:
         data = get_latest_disaster(payload.lat, payload.lng)
 
-        results = data
+        # Handle error dictionary from service
+        if isinstance(data, dict) and data.get("error"):
+            raise HTTPException(status_code=502, detail=data.get("message", "Upstream API error"))
 
         events = [
             DisasterEvent(
@@ -20,7 +22,7 @@ def get_disaster_alert(payload: DisasterRequest):
                 proximity_severity_level=e.get("proximity_severity_level"),
                 default_alert_levels=e.get("default_alert_levels"),
             )
-            for e in results
+            for e in data
         ]
 
         return DisasterResponse(
@@ -28,6 +30,8 @@ def get_disaster_alert(payload: DisasterRequest):
             events=events
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     

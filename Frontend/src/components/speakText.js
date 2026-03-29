@@ -65,6 +65,66 @@ export function cleanForSpeech(raw) {
 }
 
 /**
+ * Detects if a Latin-script (transliterated) string is likely one of the 
+ * supported Indian languages. Returns the BCP-47 hint if found, else null.
+ * 
+ * This helps avoid 400 errors from Sarvam AI when we send Hindi/etc text
+ * but the app is in "en-IN" mode.
+ */
+function detectLanguageHint(text) {
+  const t = text.toLowerCase();
+  
+  // High-confidence word lists for common regional languages (transliterated)
+  const dict = {
+    'hi-IN': ['namaste', 'main', 'aap', 'hoon', 'hai', 'khet', 'mitti', 'paani', 'fasal', 'kisan', 'talash', 'madad', 'karta', 'kuch', 'accha', 'kaunse'],
+    'ta-IN': ['vanakkam', 'nanri', 'sapadu', 'nalla', 'tamil', 'eppadi', 'irukkinga', 'vivasayam'],
+    'te-IN': ['namaksaram', 'bagundi', 'tinnara', 'telugu', 'naa', 'miru', 'ela', 'unnavu', 'vyavasayam'],
+    'kn-IN': ['namaskara', 'kannada', 'neevu', 'hege', 'iddira', 'oota', 'krishi'],
+    'ml-IN': ['namaskaram', 'sughamano', 'malayalam', 'nalla', 'ente', 'ningal', 'evide', 'krishi']
+  };
+
+  for (const [code, words] of Object.entries(dict)) {
+    // If we find at least 2 distinct words from the dictionary, we pivot
+    let hits = 0;
+    for (const w of words) {
+      if (t.includes(w)) hits++;
+      if (hits >= 2) return code;
+    }
+  }
+  return null;
+}
+
+/**
+ * Split long text into smaller chunks to satisfy the 500-character limit
+ * of the Sarvam AI Bulbul API. Splits intelligently at punctuation or space.
+ */
+function splitTextIntoChunks(text, maxLen = 450) {
+  if (text.length <= maxLen) return [text];
+  
+  const chunks = [];
+  let current = text;
+  
+  while (current.length > 0) {
+    if (current.length <= maxLen) {
+      chunks.push(current);
+      break;
+    }
+    
+    // Look for a good split point (period, comma, or space) near maxLen
+    let splitIdx = current.lastIndexOf('. ', maxLen);
+    if (splitIdx === -1) splitIdx = current.lastIndexOf(', ', maxLen);
+    if (splitIdx === -1) splitIdx = current.lastIndexOf(' ', maxLen);
+    
+    // Fallback if no space found (unlikely)
+    if (splitIdx === -1 || splitIdx < maxLen * 0.5) splitIdx = maxLen;
+    
+    chunks.push(current.substring(0, splitIdx).trim());
+    current = current.substring(splitIdx).trim();
+  }
+  return chunks;
+}
+
+/**
  * Speak text using Sarvam AI TTS (shreya voice) or fall back to the browser.
  *
  * @param {string} text  The text to speak (will be cleaned automatically)
@@ -75,11 +135,21 @@ export async function speakText(text, lang = 'en-IN') {
   if (!clean) return;
 
   const apiKey = import.meta.env.VITE_SARVAM_API_KEY;
-  const targetLang = TTS_LANG_MAP[lang] ?? 'en-IN';
+  let targetLang = TTS_LANG_MAP[lang] ?? 'en-IN';
+
+  // ── Phonetic Detection / Auto-Pivot ──────────────────────────────────────
+  const hint = detectLanguageHint(clean);
+  if (hint && targetLang === 'en-IN') {
+    console.log(`[Sarvam TTS] Text looks like ${hint}. Pivoting from en-IN for stability.`);
+    targetLang = hint;
+  }
 
   // ── Sarvam TTS path ──────────────────────────────────────────────────────
   if (apiKey) {
     try {
+      // Sarvam has a 500 character limit per input string
+      const textChunks = splitTextIntoChunks(clean, 480);
+
       const res = await fetch(SARVAM_TTS_ENDPOINT, {
         method: 'POST',
         headers: {
@@ -87,7 +157,7 @@ export async function speakText(text, lang = 'en-IN') {
           'api-subscription-key': apiKey,
         },
         body: JSON.stringify({
-          inputs: [clean],
+          inputs: textChunks,
           target_language_code: targetLang,
           speaker: 'shreya',
           model: 'bulbul:v3',
@@ -99,6 +169,7 @@ export async function speakText(text, lang = 'en-IN') {
         const data = await res.json();
         const audioChunks = data.audios ?? [];
         if (audioChunks.length > 0) {
+          // Play each chunk sequentially
           for (const b64 of audioChunks) {
             const binary = atob(b64);
             const bytes = new Uint8Array(binary.length);
@@ -107,20 +178,24 @@ export async function speakText(text, lang = 'en-IN') {
             const url = URL.createObjectURL(blob);
             const audio = new Audio(url);
             _currentAudio = audio;
+            
             await new Promise((resolve) => {
               audio.onended = () => { URL.revokeObjectURL(url); _currentAudio = null; resolve(); };
-              audio.onerror = () => { URL.revokeObjectURL(url); _currentAudio = null; resolve(); };
-              audio.play().catch(resolve);
+              audio.onerror = (e) => { 
+                console.error('[Sarvam TTS] Audio playback error', e);
+                URL.revokeObjectURL(url); _currentAudio = null; resolve(); 
+              };
+              audio.play().catch(err => {
+                console.error('[Sarvam TTS] Playback failed', err);
+                resolve();
+              });
             });
           }
           return; // Success
         }
       } else {
-        const errText = await res.text();
-        console.error('[Sarvam TTS] API Error:', res.status, errText);
-        // If API key is present but it fails, we STOP here to avoid the "man" voice fallback
-        // unless it's a critical failure where the user would prefer ANY voice.
-        // But the user specifically asked for Shreya only.
+        const errJson = await res.json().catch(() => ({}));
+        console.error('[Sarvam TTS] API Error:', res.status, errJson);
         return; 
       }
     } catch (err) {

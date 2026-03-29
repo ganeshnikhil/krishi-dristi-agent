@@ -61,35 +61,52 @@ router = APIRouter()
 async def get_and_store_keywords(sid: str):
     db = get_db()
     
-    # 1. First, try to find the document by the string session_id (the UUID)
-    doc = db.chat_history.find_one({"session_id": sid})
+    # 1. First, check if keywords already exist for this session in our 'cache'
+    # This prevents hitting Gemini quota for previously analyzed sessions.
+    existing = db.keyword.find_one({"session_id": sid})
+    if existing:
+        return {
+            "session_id": existing.get("session_id"),
+            "keywords": existing.get("keywords", [])
+        }
 
-    # 2. If not found, only THEN try to treat it as a BSON ObjectId
+    # 2. Logic to find the original chat document
+    doc = db.chat_history.find_one({"session_id": sid})
     if not doc:
         try:
-            if len(sid) == 24: # Only try ObjectId if it looks like a hex string
+            if len(sid) == 24: # treat as BSON ObjectId
                 doc = db.chat_history.find_one({"_id": ObjectId(sid)})
         except Exception:
             pass
 
-    # 3. If still not found, raise the 404
     if not doc:
         raise HTTPException(status_code=404, detail="Session not found in history")
 
-    # --- Rest of your logic ---
+    # 3. Extract and Flatten messages for Gemini
     messages = [f"{m.get('user_message')} {m.get('agent_reply')}" for m in doc.get("messages", [])]
     conversation_dump = " ".join(messages)
     
-    keyword_list = get_keywords_from_gemini(conversation_dump)
+    # 4. AI Generation with Error Handling
+    try:
+        keyword_list = get_keywords_from_gemini(conversation_dump)
+    except Exception as e:
+        # Log the error but don't crash the whole app. Return a fallback.
+        print(f"Gemini API Error (Quota/Network): {str(e)}")
+        # We don't store failure to allow retries later
+        return {
+            "session_id": sid,
+            "keywords": [],
+            "error": "AI service temporarily unavailable (Quota reached)"
+        }
 
     analysis_entry = {
-        "session_id": doc.get("session_id"),
+        "session_id": doc.get("session_id") or sid,
         "username": doc.get("username"),
         "keywords": keyword_list,
         "timestamp": datetime.utcnow()
     }
     
-    # Insert into the 'keyword' collection
+    # 5. Insert into the 'keyword' collection
     db.keyword.insert_one(analysis_entry)
 
     return {

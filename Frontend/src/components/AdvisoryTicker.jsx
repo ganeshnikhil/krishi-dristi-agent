@@ -10,8 +10,10 @@ const ADVISORY_ALERTS = [
   "🔴 DISEASE RISK: High humidity (82%) increases fungal risk — inspect leaves daily",
 ];
 
-export default function AdvisoryTicker() {
-  const text = ADVISORY_ALERTS.join("          •          ");
+export default function AdvisoryTicker({ disasters = [] }) {
+  const disasterStrings = disasters.map(d => `🚨 EMERGENCY: ${d.event_name} (${d.proximity_severity_level}) — Take immediate precautions!`);
+  const allAlerts = [...disasterStrings, ...ADVISORY_ALERTS];
+  const text = allAlerts.join("          •          ");
   const doubled = text + "          •          " + text;
 
   return (

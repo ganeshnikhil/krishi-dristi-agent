@@ -24,7 +24,7 @@ import { sarvamTranslate, isSarvamSupported } from './components/sarvamTranslate
 /* ── inline sub-components (no extra files needed) ── */
 
 /* HAMBURGER MENU */
-function HamburgerMenu({ onOpenAuth }) {
+function HamburgerMenu({ onOpenAuth, historySessions, historyKeywords, onLoadSession }) {
   const { isAuthenticated, user, logout } = useAuth()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -41,6 +41,14 @@ function HamburgerMenu({ onOpenAuth }) {
     window.addEventListener('keydown', fn)
     return () => window.removeEventListener('keydown', fn)
   }, [])
+
+  const sessions = Object.entries(historySessions)
+    .sort((a, b) => {
+      const lastA = a[1][a[1].length - 1]?.time || 0;
+      const lastB = b[1][b[1].length - 1]?.time || 0;
+      return lastB - lastA;
+    })
+    .slice(0, 10);
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -64,39 +72,13 @@ function HamburgerMenu({ onOpenAuth }) {
       {/* ── Drawer ── */}
       {open && (
         <>
-          {/* backdrop */}
-          <div
-            onClick={() => setOpen(false)}
-            style={{
-              position: 'fixed', inset: 0, zIndex: 5999,
-              background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)',
-            }}
-          />
-          <div style={{
-            position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 6000,
-            width: 'min(300px, 82vw)',
-            background: '#fff',
-            boxShadow: '-8px 0 48px rgba(0,0,0,0.18)',
-            display: 'flex', flexDirection: 'column',
-            padding: '64px 20px 40px',
-            gap: 16,
-            animation: 'hmSlide .3s cubic-bezier(.165,.84,.44,1) both',
-            overflowY: 'auto',
-          }}>
+          <div className="hb-backdrop" onClick={() => setOpen(false)} />
+          <div className="hb-drawer">
 
             {/* User block */}
             {isAuthenticated ? (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 14,
-                background: '#e8f5e9', borderRadius: 16, padding: 14,
-              }}>
-                <div style={{
-                  width: 46, height: 46, borderRadius: '50%',
-                  background: 'linear-gradient(135deg,#2e7d32,#1b5e20)',
-                  color: '#fff', fontSize: '1.2rem', fontWeight: 800,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, boxShadow: '0 4px 14px rgba(46,125,50,.3)',
-                }}>
+              <div className="hb-user-block">
+                <div className="hb-avatar-circle">
                   {user?.name?.[0]?.toUpperCase() ?? 'F'}
                 </div>
                 <div>
@@ -111,7 +93,7 @@ function HamburgerMenu({ onOpenAuth }) {
             ) : (
               <div style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
-                gap: 8, padding: '20px 14px',
+                gap: 8, padding: '20px 14px', margin: '0 20px 24px',
                 background: '#fdf8f0', borderRadius: 16,
                 border: '1.5px dashed rgba(192,96,16,.25)', textAlign: 'center',
               }}>
@@ -122,71 +104,97 @@ function HamburgerMenu({ onOpenAuth }) {
               </div>
             )}
 
-            <div style={{ height: 1, background: 'rgba(0,0,0,.07)' }} />
+            {/* Chat History Section */}
+            {isAuthenticated && sessions.length > 0 && (
+              <>
+                <div className="hb-section-label">Recent Conversations</div>
+                <div className="hb-history-list">
+                  {sessions.map(([sId, msgs]) => {
+                    const lastMsg = msgs[msgs.length - 1];
+                    const keywords = historyKeywords[sId] || [];
+                    return (
+                      <div 
+                        key={sId} 
+                        className="hb-session-item"
+                        onClick={() => { onLoadSession(sId); setOpen(false); }}
+                      >
+                        <div className="hb-session-title">
+                          {lastMsg?.text?.slice(0, 45)}...
+                        </div>
+                        <div className="hb-session-date">
+                          {lastMsg?.time?.toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        </div>
+                        {keywords.length > 0 && (
+                          <div className="hb-keyword-cloud">
+                            {keywords.slice(0, 2).map((kw, i) => (
+                              <span key={i} className="hb-keyword">{kw}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
-            {/* Nav links */}
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div className="hb-section-label">Navigation</div>
+            <nav className="hb-nav">
               {['About', 'Privacy Policy', 'Terms', 'Contact'].map(label => (
                 <a key={label} href={`#${label.toLowerCase().replace(' ', '')}`}
                   onClick={() => setOpen(false)}
-                  style={{
-                    display: 'block', padding: '11px 14px', borderRadius: 12,
-                    fontSize: '.9rem', fontWeight: 600, color: '#1a1005',
-                    textDecoration: 'none', transition: 'background .18s',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#e8f5e9'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  className="hb-nav-link"
                 >
                   {label}
                 </a>
               ))}
             </nav>
 
-            <div style={{ height: 1, background: 'rgba(0,0,0,.07)' }} />
-
             {/* Auth CTA */}
-            {isAuthenticated ? (
-              <button
-                onClick={() => { logout(); setOpen(false) }}
-                style={{
-                  width: '100%', padding: '13px 16px', borderRadius: 14,
-                  background: 'rgba(229,57,53,.07)',
-                  color: '#c62828', border: '1.5px solid rgba(229,57,53,.2)',
-                  fontSize: '.9rem', fontWeight: 700, fontFamily: 'inherit',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', gap: 8, marginTop: 'auto',
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-                Logout
-              </button>
-            ) : (
-              <button
-                onClick={() => { onOpenAuth(); setOpen(false) }}
-                style={{
-                  width: '100%', padding: '13px 16px', borderRadius: 14,
-                  background: 'linear-gradient(135deg,#2e7d32,#1b5e20)',
-                  color: '#fff', border: 'none',
-                  fontSize: '.9rem', fontWeight: 700, fontFamily: 'inherit',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', gap: 8, marginTop: 'auto',
-                  boxShadow: '0 6px 20px rgba(27,94,32,.25)',
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                  <polyline points="10 17 15 12 10 7" />
-                  <line x1="15" y1="12" x2="3" y2="12" />
-                </svg>
-                Login / Register
-              </button>
-            )}
+            <div className="hb-footer">
+              {isAuthenticated ? (
+                <button
+                  onClick={() => { logout(); setOpen(false) }}
+                  style={{
+                    width: '100%', padding: '13px 16px', borderRadius: 14,
+                    background: 'rgba(229,57,53,.07)',
+                    color: '#c62828', border: '1.5px solid rgba(229,57,53,.2)',
+                    fontSize: '.9rem', fontWeight: 700, fontFamily: 'inherit',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', gap: 8,
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  Logout
+                </button>
+              ) : (
+                <button
+                  onClick={() => { onOpenAuth(); setOpen(false) }}
+                  style={{
+                    width: '100%', padding: '13px 16px', borderRadius: 14,
+                    background: 'linear-gradient(135deg,#2e7d32,#1b5e20)',
+                    color: '#fff', border: 'none',
+                    fontSize: '.9rem', fontWeight: 700, fontFamily: 'inherit',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', gap: 8,
+                    boxShadow: '0 6px 20px rgba(27,94,32,.25)',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                    <polyline points="10 17 15 12 10 7" />
+                    <line x1="15" y1="12" x2="3" y2="12" />
+                  </svg>
+                  Login / Register
+                </button>
+              )}
+            </div>
 
           </div>
         </>
@@ -203,6 +211,17 @@ function AuthPage({ onSuccess, onClose }) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState({ msg: '', type: 'error' })
+  const [suggestions, setSuggestions] = useState([])
+
+  const generateSuggestions = (base) => {
+    const clean = base.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const list = [
+      `${clean}${Math.floor(Math.random() * 90) + 10}`,
+      `${clean}_farmer`,
+      `${clean}2026`
+    ];
+    setSuggestions(list);
+  }
 
   const showToast = (msg, type = 'error') => {
     setToast({ msg, type })
@@ -213,7 +232,16 @@ function AuthPage({ onSuccess, onClose }) {
     if (!username.trim()) return 'Username is required.'
     if (username.trim().length < 3) return 'Username must be at least 3 characters.'
     if (!password) return 'Password is required.'
-    if (password.length < 4) return 'Password must be at least 4 characters.'
+
+    if (mode === 'register') {
+      if (password.length < 8) return 'Password must be at least 8 characters.'
+      if (!/[A-Z]/.test(password)) return 'Password must include at least one uppercase letter.'
+      const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/
+      if (!specialCharRegex.test(password)) return 'Password must include at least one special character.'
+    } else {
+      if (password.length < 4) return 'Password must be at least 4 characters.'
+    }
+
     return null
   }
 
@@ -223,11 +251,19 @@ function AuthPage({ onSuccess, onClose }) {
     if (err) return showToast(err)
     setLoading(true)
     try {
-      if (mode === 'login') { await login(username.trim(), password); showToast('Welcome back! 🌾', 'success') }
-      else { await register(username.trim(), password); showToast('Account created! 🌱', 'success') }
+      if (mode === 'login') { 
+        await login(username.trim(), password); 
+        showToast('Welcome back! 🌾', 'success') 
+      } else { 
+        await register(username.trim(), password); 
+        showToast('Account created! 🌱', 'success') 
+      }
       setTimeout(() => onSuccess?.(), 500)
     } catch (err) {
       showToast(err.message)
+      if (mode === 'register' && err.message.toLowerCase().includes('taken')) {
+        generateSuggestions(username.trim())
+      }
     } finally {
       setLoading(false)
     }
@@ -300,31 +336,72 @@ function AuthPage({ onSuccess, onClose }) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }} noValidate>
-          {[
-            { id: 'km-user', label: 'Username · यूजरनेम', type: 'text', val: username, set: setUsername, ph: mode === 'login' ? 'Enter username' : 'Choose a username', ac: 'username' },
-            { id: 'km-pass', label: 'Password · पासवर्ड', type: 'password', val: password, set: setPassword, ph: mode === 'login' ? 'Enter password' : 'Create a password (min 4 chars)', ac: mode === 'login' ? 'current-password' : 'new-password' },
-          ].map(f => (
-            <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label htmlFor={f.id} style={{ fontSize: '.75rem', fontWeight: 700, color: 'rgba(26,16,5,.6)', letterSpacing: '.02em' }}>
-                {f.label}
-              </label>
-              <input
-                id={f.id} type={f.type} value={f.val}
-                onChange={e => f.set(e.target.value)}
-                placeholder={f.ph} autoComplete={f.ac}
-                autoCapitalize="none" disabled={loading}
-                style={{
-                  width: '100%', padding: '13px 16px', borderRadius: 12,
-                  border: '1.5px solid rgba(0,0,0,.1)', background: '#f9f9f7',
-                  fontSize: '.95rem', fontFamily: 'inherit', color: '#1a1005',
-                  outline: 'none', transition: 'border-color .2s,box-shadow .2s',
-                  opacity: loading ? .55 : 1,
-                }}
-                onFocus={e => { e.target.style.borderColor = '#2e7d32'; e.target.style.boxShadow = '0 0 0 3px rgba(46,125,50,.12)'; e.target.style.background = '#fff' }}
-                onBlur={e => { e.target.style.borderColor = 'rgba(0,0,0,.1)'; e.target.style.boxShadow = 'none'; e.target.style.background = '#f9f9f7' }}
-              />
-            </div>
-          ))}
+          {/* Username */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: '.75rem', fontWeight: 700, color: 'rgba(26,16,5,.6)', letterSpacing: '.02em' }}>
+              Username · यूजरनेम
+            </label>
+            <input
+              value={username}
+              onChange={e => { setUsername(e.target.value); setSuggestions([]); }}
+              placeholder={mode === 'login' ? 'Enter username' : 'Choose a username'}
+              autoComplete="username"
+              disabled={loading}
+              style={{
+                width: '100%', padding: '13px 16px', borderRadius: 12,
+                border: '1.5px solid rgba(0,0,0,.1)', background: '#f9f9f7',
+                fontSize: '.95rem', fontFamily: 'inherit', color: '#1a1005',
+                outline: 'none', transition: 'all .3s',
+                opacity: loading ? .55 : 1,
+              }}
+              onFocus={e => { e.target.style.borderColor = '#2e7d32'; e.target.style.boxShadow = '0 0 0 3px rgba(46,125,50,.12)'; e.target.style.background = '#fff' }}
+              onBlur={e => { e.target.style.borderColor = 'rgba(0,0,0,.1)'; e.target.style.boxShadow = 'none'; e.target.style.background = '#f9f9f7' }}
+            />
+            {mode === 'register' && suggestions.length > 0 && (
+              <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <span style={{ fontSize: '.7rem', color: '#c62828', fontWeight: 600, width: '100%' }}>Taken. Try:</span>
+                {suggestions.map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => { setUsername(s); setSuggestions([]); }}
+                    style={{
+                      padding: '4px 10px', borderRadius: 20, background: '#e8f5e9',
+                      color: '#2e7d32', fontSize: '.72rem', fontWeight: 700,
+                      border: '1px solid rgba(46,125,50,0.2)', cursor: 'pointer',
+                      transition: 'all .2s'
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Password */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: '.75rem', fontWeight: 700, color: 'rgba(26,16,5,.6)', letterSpacing: '.02em' }}>
+              Password · पासवर्ड
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder={mode === 'login' ? 'Enter password' : 'Create a secure password'}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              disabled={loading}
+              style={{
+                width: '100%', padding: '13px 16px', borderRadius: 12,
+                border: '1.5px solid rgba(0,0,0,.1)', background: '#f9f9f7',
+                fontSize: '.95rem', fontFamily: 'inherit', color: '#1a1005',
+                outline: 'none', transition: 'all .3s',
+                opacity: loading ? .55 : 1,
+              }}
+              onFocus={e => { e.target.style.borderColor = '#2e7d32'; e.target.style.boxShadow = '0 0 0 3px rgba(46,125,50,.12)'; e.target.style.background = '#fff' }}
+              onBlur={e => { e.target.style.borderColor = 'rgba(0,0,0,.1)'; e.target.style.boxShadow = 'none'; e.target.style.background = '#f9f9f7' }}
+            />
+          </div>
 
           {mode === 'login' && (
             <p style={{ fontSize: '.72rem', color: 'rgba(26,16,5,.35)', textAlign: 'center', margin: 0 }}>
@@ -441,6 +518,15 @@ export default function App() {
   const [showAuth, setShowAuth] = useState(false)
   const [gateToast, setGateToast] = useState(false)
   const [pendingAction, setPendingAction] = useState(null) // 'chat' | 'mic'
+  const [chatSessionId, setChatSessionId] = useState(() => {
+    return localStorage.getItem('chatSessionId') || crypto.randomUUID();
+  })
+
+  // Grouped history sessions: { [sessionId]: Message[] }
+  const [historySessions, setHistorySessions] = useState({})
+  // Session keywords: { [sessionId]: string[] }
+  const [historyKeywords, setHistoryKeywords] = useState({})
+
   const [messages, setMessages] = useState([
     { id: 1, type: 'bot', text: 'Namaste! 🌾 I am KrishiBot. Speak or type to ask anything about your farm.', time: new Date() },
   ])
@@ -448,6 +534,10 @@ export default function App() {
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false)
   const [weatherData, setWeatherData] = useState(null)
   const [showSchemes, setShowSchemes] = useState(false)
+  const [disasterEvents, setDisasterEvents] = useState([])
+  const [latestDisaster, setLatestDisaster] = useState(null)
+  const [showDisasterModal, setShowDisasterModal] = useState(false)
+  const [coords, setCoords] = useState({ lat: 30.3165, lng: 78.0322 }) // Default Dehradun
 
   const sliderRef = useRef(null)
   const isUserScrolling = useRef(false)
@@ -515,6 +605,138 @@ export default function App() {
     setPendingAction(null)
   }, [pendingAction])
 
+  // ── Disaster Polling ──
+  useEffect(() => {
+    const fetchDisasters = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+        const res = await fetch(`${apiUrl}/api/v1/disaster`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat: coords.lat, lng: coords.lng })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const events = data.events || [];
+        setDisasterEvents(events);
+
+        if (events.length > 0) {
+          const newest = events[0];
+          const lastSeenId = localStorage.getItem('last_seen_disaster');
+          if (newest.event_name !== lastSeenId) {
+            setLatestDisaster(newest);
+            setShowDisasterModal(true);
+            localStorage.setItem('last_seen_disaster', newest.event_name);
+          }
+        }
+      } catch (e) {
+        console.warn('Disaster fetch failed:', e);
+      }
+    };
+
+    fetchDisasters();
+    const iv = setInterval(fetchDisasters, 60000);
+    return () => clearInterval(iv);
+  }, [coords]);
+
+  // ── Geolocation ──
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      }, (err) => console.warn("Geo error:", err));
+    }
+  }, []);
+
+  /* ── Chat history fetching (Grouped by Session) ── */
+  useEffect(() => {
+    if (!isAuthenticated || !token) return;
+
+    const fetchHistory = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+        const res = await fetch(`${apiUrl}/api/v1/chat/history`, {
+          method: 'GET',
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (data.messages && data.messages.length > 0) {
+          // Group flat message list by session_id
+          const sessions = {};
+          data.messages.forEach((m, idx) => {
+            const sId = m.session_id || 'default';
+            if (!sessions[sId]) sessions[sId] = [];
+            
+            sessions[sId].push({
+              id: `hist-${idx}-${m.timestamp}`,
+              type: m.role === 'assistant' ? 'bot' : 'user',
+              text: m.content,
+              time: new Date(m.timestamp),
+              session_id: sId
+            });
+          });
+          
+          setHistorySessions(sessions);
+        }
+      } catch (e) {
+        console.error('Failed to load history:', e);
+      }
+    };
+
+    fetchHistory();
+  }, [isAuthenticated, token]);
+
+  /* ── Fetch Keywords for Sessions ── */
+  useEffect(() => {
+    const sIds = Object.keys(historySessions);
+    if (sIds.length === 0 || !isAuthenticated || !token) return;
+
+    const fetchAllKeywords = async () => {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const updatedKeywords = { ...historyKeywords };
+      let hasNew = false;
+
+      // We only fetch for sessions we don't have keywords for yet
+      for (const sId of sIds) {
+        if (updatedKeywords[sId] || sId === 'default') continue;
+        
+        try {
+          const res = await fetch(`${apiUrl}/api/v1/keywords/${sId}`, {
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.keywords) {
+              updatedKeywords[sId] = data.keywords;
+              hasNew = true;
+            }
+          }
+        } catch (e) {
+          console.warn(`Could not fetch keywords for session ${sId}`, e);
+        }
+      }
+
+      if (hasNew) {
+        setHistoryKeywords(updatedKeywords);
+      }
+    };
+
+    fetchAllKeywords();
+  }, [historySessions, isAuthenticated, token]);
+
+  const handleLoadSession = (sessionId) => {
+    const sessionMessages = historySessions[sessionId];
+    if (sessionMessages) {
+      setMessages(sessionMessages);
+      setChatSessionId(sessionId);
+      setIsChatPanelOpen(true);
+      setIsChatOpen(true);
+    }
+  };
+
   /* scroll shadow */
   useEffect(() => {
     const fn = () => setIsScrolled(window.scrollY > 10)
@@ -579,7 +801,10 @@ export default function App() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ message: queryForBackend }),
+        body: JSON.stringify({ 
+          message: queryForBackend,
+          session_id: chatSessionId
+        }),
       })
       const data = await res.json()
       let reply = res.ok ? data.reply : (data.detail || 'Something went wrong.')
@@ -622,7 +847,31 @@ export default function App() {
       ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
   }
 
-  const handleCloseVoice = () => {
+  const handleCloseVoice = async () => {
+    // Send session_id one last time to "close" or mark the interaction
+    try {
+      if (token) {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+        await fetch(`${apiUrl}/api/v1/chat/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ 
+            message: "[Session Closed]", 
+            session_id: chatSessionId 
+          })
+        });
+      }
+    } catch (e) {
+      console.warn("Could not notify backend of session close", e);
+    }
+
+    // Clear session from localStorage so next time is a new ID
+    localStorage.removeItem('chatSessionId');
+    setChatSessionId(crypto.randomUUID());
+
     stopListening();
     stopSpeech();
     setIsChatPanelOpen(false);
@@ -766,14 +1015,20 @@ if (showSchemes) {
           </button>
 
           {/* ← HAMBURGER — now actually wired */}
-          <HamburgerMenu onOpenAuth={() => setShowAuth(true)} />
+          <HamburgerMenu 
+            onOpenAuth={() => setShowAuth(true)} 
+            historySessions={historySessions}
+            historyKeywords={historyKeywords}
+            onLoadSession={handleLoadSession}
+          />
         </div>
       </nav>
 
       <img src={navbarBottomBorder} alt="" className="navbar-bottom-border" aria-hidden="true" />
 
-      <main className="dashboard-content">
+      <main className="main-content">
         <section className="hero-section">
+
           <div className="hero">
             <img src={rainDrops} alt="" className="rain-gif" aria-hidden="true" />
             <img src={clouds} alt="" className="clouds-img" aria-hidden="true" />
@@ -829,7 +1084,7 @@ if (showSchemes) {
             </div>
           </div>
         </section>
-        <AdvisoryTicker />
+        <AdvisoryTicker disasters={disasterEvents} />
 
         <section className="timeline-section">
           <div className="section-divider" />
@@ -881,12 +1136,43 @@ if (showSchemes) {
               <div className="card-desc">Soil moisture at optimal levels for current wheat crop stage. No irrigation required today.</div>
               <div className="card-row"><div className="card-chip">💧 Moisture 42%</div><div className="card-chip">🌡 Soil 18°C</div><div className="card-chip">⚗️ N–P–K OK</div></div>
             </div>
-            <div className="card card-advisory">
-              <div className="card-top"><div className="card-label"><span className="card-dot dot-amber" />Advisory</div><span className="card-badge badge-action">⚡ Action</span></div>
-              <div className="card-metric">Irrigate</div>
-              <div className="card-desc">Wheat crop needs irrigation within 24 hours. Rain today may reduce requirement — reassess tomorrow.</div>
-              <div className="card-row"><div className="card-chip">📅 Fertilise in 3 days</div><div className="card-chip">🌾 Stage 3</div></div>
-            </div>
+            {/* Advisory / Disaster Card */}
+            {disasterEvents.length > 0 ? (
+              <div className="card card-disaster-alert">
+                <div className="card-top">
+                  <div className="card-label">
+                    <span className="card-dot dot-red-pulse" />
+                    Disaster Advisory
+                  </div>
+                  <span className="card-badge badge-emergency">🚨 EMERGENCY</span>
+                </div>
+                <div className="card-metric">{disasterEvents[0].event_name}</div>
+                <div className="card-desc">
+                  Risk Level: {disasterEvents[0].proximity_severity_level}. 
+                  Stay alert and follow safety protocols immediately.
+                </div>
+                <div className="card-cta">
+                  <button 
+                    className="card-cta-btn disaster-chat-btn"
+                    onClick={() => {
+                      setIsChatOpen(true);
+                      setIsChatPanelOpen(true);
+                      const prompt = `I am worried about the ${disasterEvents[0].event_name}. What should I do for my farm?`;
+                      handleAppQuery(prompt, true);
+                    }}
+                  >
+                    Chat for Safety Steps →
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="card card-advisory">
+                <div className="card-top"><div className="card-label"><span className="card-dot dot-amber" />Advisory</div><span className="card-badge badge-action">⚡ Action</span></div>
+                <div className="card-metric">Irrigate</div>
+                <div className="card-desc">Wheat crop needs irrigation within 24 hours. Rain today may reduce requirement — reassess tomorrow.</div>
+                <div className="card-row"><div className="card-chip">📅 Fertilise in 3 days</div><div className="card-chip">🌾 Stage 3</div></div>
+              </div>
+            )}
             <div className="card card-scheme">
               <div className="card-top"><div className="card-label"><span className="card-dot dot-purple" />Government Scheme</div><span className="card-badge badge-scheme">🏛 New</span></div>
               <div className="card-metric-sm">PM Fasal Bima</div>
@@ -899,6 +1185,7 @@ if (showSchemes) {
   View All Schemes →
 </button></div>
             </div>
+
           </div>
         </section>
       </main>
@@ -961,6 +1248,63 @@ if (showSchemes) {
 
           {!isChatPanelOpen && (
             <div className="voice-overlay-content">
+              {/* Previous Conversations Gallery (Voice Mode) */}
+              {Object.keys(historySessions).length > 0 && (
+                <div className="history-top-gallery history-top-gallery--voice">
+                  <div className="gallery-header">
+                    <span className="gallery-title" style={{ color: 'rgba(255,255,255,0.7)' }}>Recent Chats</span>
+                  </div>
+                  <div className="history-gallery-container">
+                    <div className="history-gallery">
+                      {Object.entries(historySessions).sort((a,b) => {
+                        const timeA = new Date(a[1][a[1].length - 1].time).getTime();
+                        const timeB = new Date(b[1][b[1].length - 1].time).getTime();
+                        return timeB - timeA;
+                      }).map(([sId, msgs]) => {
+                        const lastMsg = msgs[msgs.length - 1];
+                        return (
+                          <div key={sId} className="card card-history-session card-history-session--voice" onClick={() => handleLoadSession(sId)}>
+                            <div className="card-top">
+                              <div className="card-label" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                                <span className="card-dot dot-green" /> Session
+                              </div>
+                              <span className="card-badge badge-good" style={{ background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
+                                {msgs.length}
+                              </span>
+                            </div>
+                            <div className="card-metric-sm" style={{ fontSize: '0.85rem', marginTop: '4px', color: '#fff' }}>
+                              {lastMsg.time.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            </div>
+                            <div className="card-desc" style={{ 
+                              fontSize: '0.7rem',
+                              color: 'rgba(255,255,255,0.6)',
+                              display: '-webkit-box', 
+                              WebkitLineClamp: 2, 
+                              WebkitBoxOrient: 'vertical', 
+                              overflow: 'hidden',
+                              marginTop: '2px',
+                              minHeight: '2.2em'
+                            }}>
+                              {lastMsg.text}
+                            </div>
+                            
+                            {/* Keywords Chips */}
+                            {historyKeywords[sId] && (
+                              <div className="card-keywords">
+                                {historyKeywords[sId].slice(0, 3).map((kw, i) => (
+                                  <span key={i} className="keyword-chip">
+                                    {kw}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
               {/* Visualizer at top */}
               <div className="voice-visualizer">
                 <div className="nebula-blob" />
@@ -981,7 +1325,8 @@ if (showSchemes) {
 
               {/* Focused Interaction Stage (No Scroll) */}
               <div className="voice-interaction-stage notranslate">
-                {messages.length > 1 && messages.slice(-2).map((msg) => (
+                {/* Initial Welcome or Interaction Bubbles */}
+                {messages.length > 0 && messages.slice(-2).map((msg) => (
                   <div
                     key={msg.id}
                     className={`voice-bubble voice-bubble--${msg.type}`}
@@ -1005,8 +1350,8 @@ if (showSchemes) {
                   </div>
                 )}
 
-                {/* Empty state */}
-                {messages.filter(m => m.type !== 'system').length === 0 && !transcript.trim() && !isProcessing && (
+                {/* Empty / Placeholder state (if only the default welcome is present) */}
+                {messages.length <= 1 && !transcript.trim() && !isProcessing && (
                   <div className="transcript-placeholder">
                     {isListening ? `🎤 Listening in ${language?.name || 'English'}…` : 'Tap the mic to speak'}
                   </div>
@@ -1080,6 +1425,69 @@ if (showSchemes) {
             onSwitchToVoice={() => { setIsChatPanelOpen(false); setIsChatOpen(true); }}
             onSpeak={(text) => speakText(text, localLangCode)}
           />
+        </div>
+      )}
+      {/* DISASTER ALERT MODAL */}
+      {showDisasterModal && latestDisaster && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(56,0,0,0.85)', backdropFilter: 'blur(20px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+          animation: 'fadeIn .4s ease'
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 32, padding: '40px 32px',
+            width: '100%', maxWidth: 450, textAlign: 'center',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+            animation: 'alertPop .5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <div style={{ fontSize: '4rem', marginBottom: 16 }}>🚨</div>
+            <h2 style={{ fontSize: '1.8rem', color: '#c62828', fontWeight: 800, margin: '0 0 12px' }}>
+              Disaster Alert!
+            </h2>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1a1005', marginBottom: 8 }}>
+              {latestDisaster.event_name}
+            </div>
+            <div style={{ 
+              display: 'inline-block', padding: '6px 16px', borderRadius: 20, 
+              background: '#ffebee', color: '#c62828', fontSize: '.9rem', fontWeight: 700,
+              marginBottom: 24, border: '1px solid rgba(198,40,40,0.2)'
+            }}>
+              {latestDisaster.proximity_severity_level} Risk
+            </div>
+            <p style={{ fontSize: '1rem', color: 'rgba(26,16,5,0.7)', lineHeight: 1.6, margin: '0 0 32px' }}>
+              A critical environmental event has been detected near your location. 
+              Please take immediate safety measures to protect your family and farm.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button 
+                onClick={() => {
+                  setShowDisasterModal(false);
+                  setIsChatOpen(true);
+                  setIsChatPanelOpen(true);
+                  handleAppQuery(`Emergency: ${latestDisaster.event_name}. How can I protect my crops and livestock right now?`, true);
+                }}
+                style={{
+                  width: '100%', padding: 16, borderRadius: 16, border: 'none',
+                  background: 'linear-gradient(135deg, #c62828, #b71c1c)',
+                  color: '#fff', fontSize: '1.05rem', fontWeight: 700, cursor: 'pointer',
+                  boxShadow: '0 8px 20px rgba(198,40,40,0.3)', transition: 'all .2s'
+                }}
+              >
+                Get Safety Guidance →
+              </button>
+              <button 
+                onClick={() => setShowDisasterModal(false)}
+                style={{
+                  width: '100%', padding: 14, borderRadius: 16, border: '1.5px solid rgba(0,0,0,0.1)',
+                  background: 'none', color: 'rgba(0,0,0,0.6)', fontSize: '.95rem', fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Dismiss Alert
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>
