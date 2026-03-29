@@ -81,7 +81,7 @@ from app.tools.farm_advice_tool import FarmPracticeRAGTool
 from app.tools.goverment_schema_tool import GovSchemeRAGTool
 
 
-tool = RainfallPredictionTool()
+tool = WeatherInfoTool()
 
 print("=== Yield Tool Test ===")
 
