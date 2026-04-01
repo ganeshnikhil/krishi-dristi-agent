@@ -1,6 +1,4 @@
-Here’s a **complete, clean, professional README.md** combining your **backend + frontend + deployment** into one cohesive document 👇
 
----
 
 # 🌾 Krishi Mitra – Smart Farming Assistant
 
