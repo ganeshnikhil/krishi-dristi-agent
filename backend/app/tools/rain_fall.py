@@ -20,7 +20,7 @@ class RainfallPredictionTool(BaseTool):
     args_schema: Type[BaseModel] = EmptyInput
 
     def _run(self) -> str:
-        lat, lon = get_active_location()
+        lat, lon = 30.3165, 78.0322
         csv_file = str(Path(__file__).resolve().parent.parent / "data" / "rain_fall_distribution.csv")
 
         try:

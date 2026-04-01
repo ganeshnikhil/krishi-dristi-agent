@@ -19,7 +19,7 @@ class WeatherInfoTool(BaseTool):
 
     def _run(self) -> str:
         try:
-            lat, lon = get_active_location()
+            lat, lon = 30.3165, 78.0322
 
             data = get_weather_data(lat, lon)
 
