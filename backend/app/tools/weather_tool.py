@@ -19,7 +19,13 @@ class WeatherInfoTool(BaseTool):
 
     def _run(self) -> str:
         try:
-            lat, lon = 30.3165, 78.0322
+            
+            
+            lat, lon = get_active_location()
+
+            # fallback to Dehradun if invalid
+            if lat is None or lon is None:
+                lat, lon = 30.3165, 78.0322
 
             data = get_weather_data(lat, lon)
 

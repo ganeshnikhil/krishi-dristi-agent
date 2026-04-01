@@ -30,7 +30,12 @@ class FertilizerPredictionTool(BaseTool):
     args_schema: Type[BaseModel] = FertilizerInput
 
     def _run(self, crop_type: Optional[str] = None) -> str:
-        lat, lon = 30.3165, 78.0322
+        lat, lon = get_active_location()
+
+        # fallback to Dehradun if invalid
+        if lat is None or lon is None:
+            lat, lon = 30.3165, 78.0322
+            
         fertilizer_model  = str(Path(__file__).resolve().parent.parent / "models" / "fertilizer_bundle.pkl")
         crop_model        = str(Path(__file__).resolve().parent.parent / "models" / "crop_prediction_model.pkl")
 

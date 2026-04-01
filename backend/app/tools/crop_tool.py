@@ -27,11 +27,12 @@ class CropRecommendationInternalTool(BaseTool):
             # -----------------------------
             # 1. LOCATION
             # -----------------------------
-            loc = get_active_location()
-            if not loc:
-                return "❌ Location not available"
+            lat, lon = get_active_location()
 
-            lat, lon = 30.3165, 78.0322
+            if lat is None or lon is None:
+                # fallback to Dehradun
+                lat, lon = 30.3165, 78.0322
+
 
             # -----------------------------
             # 2. MODEL PATH
