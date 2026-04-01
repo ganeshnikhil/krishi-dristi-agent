@@ -29,7 +29,7 @@ class YieldPredictionInternalTool(BaseTool):
     args_schema: Type[BaseModel] = YieldInput
 
     def _run(self, crop_name: Optional[str] = None) -> str:
-        lat, lon = get_active_location()
+        lat, lon = 30.3165, 78.0322
         yield_model = str(Path(__file__).resolve().parent.parent / "models" / "india_crop_yield_model.pkl")
         crop_model  = str(Path(__file__).resolve().parent.parent / "models" / "crop_prediction_model.pkl")
 

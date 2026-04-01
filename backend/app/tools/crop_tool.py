@@ -31,7 +31,7 @@ class CropRecommendationInternalTool(BaseTool):
             if not loc:
                 return "❌ Location not available"
 
-            lat, lon = loc
+            lat, lon = 30.3165, 78.0322
 
             # -----------------------------
             # 2. MODEL PATH
