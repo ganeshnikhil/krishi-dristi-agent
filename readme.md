@@ -71,6 +71,12 @@ This system combines:
 
 ---
 
+## 🧠 System Workflow & Architecture
+
+![Krishi Mitra Workflow](Frontend/public/image.png)
+
+---
+
 # 🖥 Frontend (React + Vite)
 
 ### 🌐 Live Deployment
